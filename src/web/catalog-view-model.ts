@@ -205,13 +205,52 @@ export function toggleComparison(
   return { ids: [...selectedIds, record.id], reason: null };
 }
 
+function normalizeSearchText(value: string): string {
+  return value.toLocaleLowerCase();
+}
+
+function buildSearchTerms(query: string): string[] {
+  return normalizeSearchText(query).trim().split(/\s+/).filter(Boolean);
+}
+
+function textMatchesTerms(value: string, terms: readonly string[]): boolean {
+  const normalized = normalizeSearchText(value);
+  const tokens = new Set(normalized.split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+  return terms.every((term) => term.length <= 2 ? tokens.has(term) : normalized.includes(term));
+}
+
+function getSearchRank(record: CatalogViewRecord, query: string, terms: readonly string[]): number {
+  const normalizedQuery = normalizeSearchText(query).trim();
+  const identityFields = [record.name, record.acronym ?? "", ...record.aliases, record.id, record.slug]
+    .map(normalizeSearchText);
+  if (identityFields.some((value) => value === normalizedQuery)) return 0;
+  if (identityFields.some((value) => value.startsWith(normalizedQuery))) return 1;
+  if (identityFields.some((value) => textMatchesTerms(value, terms))) return 2;
+  return 3;
+}
+
+export function getCatalogSearchMatch(
+  record: CatalogViewRecord,
+  query: string,
+): { label: string } | null {
+  const terms = buildSearchTerms(query);
+  if (terms.length === 0) return null;
+  if (textMatchesTerms(record.name, terms)) return null;
+  if (record.acronym && textMatchesTerms(record.acronym, terms)) return { label: "Matched acronym" };
+  if (record.aliases.some((value) => textMatchesTerms(value, terms))) return { label: "Matched alias" };
+  if ([record.id, record.slug].some((value) => textMatchesTerms(value, terms))) return { label: "Matched identifier" };
+  if (textMatchesTerms(record.issuer, terms)) return { label: "Matched publisher" };
+  if ([...record.domains, ...record.tags].some((value) => textMatchesTerms(value, terms))) return { label: "Matched topic" };
+  return { label: "Matched record details" };
+}
+
 export function filterCatalog<T extends CatalogViewRecord>(
   records: readonly T[],
   filters: CatalogFilters,
 ): T[] {
-  const terms = filters.query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const terms = buildSearchTerms(filters.query);
 
-  return records.filter((record) => {
+  return records.map((record, index) => ({ record, index })).filter(({ record }) => {
     if (filters.types.size > 0 && !filters.types.has(record.type)) return false;
     if (filters.statuses.size > 0 && !filters.statuses.has(record.status)) return false;
     if (filters.domains.size > 0 && !record.domains.some((domain) => filters.domains.has(domain))) return false;
@@ -227,14 +266,20 @@ export function filterCatalog<T extends CatalogViewRecord>(
       record.issuer,
       record.applicability,
       record.version ?? "",
+      record.id,
+      record.slug,
+      ...record.aliases,
       ...record.jurisdictions,
       ...record.industries,
       ...record.domains,
       ...record.tags,
     ].join(" ").toLocaleLowerCase();
-    const searchableTokens = new Set(searchable.split(/[^\p{L}\p{N}]+/u).filter(Boolean));
-    return terms.every((term) => term.length <= 2 ? searchableTokens.has(term) : searchable.includes(term));
-  });
+    return textMatchesTerms(searchable, terms);
+  }).sort((left, right) => {
+    if (terms.length === 0) return left.index - right.index;
+    return getSearchRank(left.record, filters.query, terms) - getSearchRank(right.record, filters.query, terms)
+      || left.index - right.index;
+  }).map(({ record }) => record);
 }
 
 export function getIndustryRelevance(

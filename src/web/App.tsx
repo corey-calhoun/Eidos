@@ -14,6 +14,7 @@ import {
   formatCatalogType,
   formatIndustry,
   formatRelationshipAuthority,
+  getCatalogSearchMatch,
   getAdjacentRecordDetailSection,
   getDialogFocusEdge,
   getIndustryRelevance,
@@ -57,6 +58,10 @@ function trapDialogFocus(event: ReactKeyboardEvent<HTMLElement>) {
 function App() {
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [refineOpen, setRefineOpen] = useState(() => window.matchMedia("(min-width: 821px)").matches);
+  const [materialTypesOpen, setMaterialTypesOpen] = useState(() => window.matchMedia("(min-width: 821px)").matches);
+  const [activeStatuses, setActiveStatuses] = useState<Set<string>>(new Set());
+  const [activeDomains, setActiveDomains] = useState<Set<string>>(new Set());
   const [activeIndustries, setActiveIndustries] = useState<Set<CatalogIndustry>>(new Set());
   const [selectedRecord, setSelectedRecord] = useState<CatalogRecord | null>(initialRecord);
   const [invalidRecordSlug, setInvalidRecordSlug] = useState<string | null>(initialSlug && !initialRecord ? initialSlug : null);
@@ -67,6 +72,8 @@ function App() {
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const comparisonHeadingRef = useRef<HTMLHeadingElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const resultsPaneRef = useRef<HTMLElement>(null);
+  const detailBodyRef = useRef<HTMLDivElement>(null);
   const recordOpenerRef = useRef<HTMLElement | null>(null);
   const comparisonOpenerRef = useRef<HTMLElement | null>(null);
   const recordDepthRef = useRef(0);
@@ -76,10 +83,10 @@ function App() {
   const records = useMemo(() => filterCatalog(catalogRecords, {
     query,
     types: activeType ? new Set([activeType]) : new Set(),
-    statuses: new Set(),
-    domains: new Set(),
+    statuses: activeStatuses,
+    domains: activeDomains,
     industries: activeIndustries,
-  }), [query, activeType, activeIndustries]);
+  }), [query, activeType, activeStatuses, activeDomains, activeIndustries]);
 
   const comparedRecords = comparisonIds
     .map((id) => catalogRecords.find((record) => record.id === id))
@@ -105,6 +112,14 @@ function App() {
   useEffect(() => {
     if (comparisonOpen) comparisonHeadingRef.current?.focus();
   }, [comparisonOpen]);
+
+  useEffect(() => {
+    resultsPaneRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [query, activeType, activeStatuses, activeDomains, activeIndustries]);
+
+  useEffect(() => {
+    if (selectedRecord) detailBodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [selectedRecord?.id]);
 
   useEffect(() => {
     if (!selectedRecord && !invalidRecordSlug && !comparisonOpen) return;
@@ -201,9 +216,29 @@ function App() {
     });
   }
 
+  function toggleStatus(status: string) {
+    setActiveStatuses((current) => {
+      const next = new Set(current);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  }
+
+  function toggleDomain(domain: string) {
+    setActiveDomains((current) => {
+      const next = new Set(current);
+      if (next.has(domain)) next.delete(domain);
+      else next.add(domain);
+      return next;
+    });
+  }
+
   function clearFilters() {
     setQuery("");
     setActiveType(null);
+    setActiveStatuses(new Set());
+    setActiveDomains(new Set());
     setActiveIndustries(new Set());
   }
 
@@ -270,18 +305,33 @@ function App() {
         </section>
 
         <div className="library-frame">
-          <aside className="filter-rail" aria-labelledby="filter-heading">
+          <aside className="filter-rail" aria-label="Catalog filters">
+            <details className="refine-disclosure" open={refineOpen} onToggle={(event) => setRefineOpen(event.currentTarget.open)}>
+              <summary className="mobile-refine-summary">Refine results <span>{records.length} shown</span></summary>
+              <div className="refine-content">
             <div className="rail-heading">
               <div><span className="section-kicker">Refine</span><h2 id="filter-heading">Browse</h2></div>
-              {(query || activeType || activeIndustries.size > 0) && <button className="rail-clear" onClick={clearFilters}>Reset</button>}
+              {(query || activeType || activeStatuses.size > 0 || activeDomains.size > 0 || activeIndustries.size > 0) && <button className="rail-clear" onClick={clearFilters}>Reset</button>}
             </div>
-            <section className="filter-group" aria-labelledby="type-filter-heading">
-              <h3 id="type-filter-heading">Material type</h3>
+            <details className="filter-group material-filter" open={materialTypesOpen} onToggle={(event) => setMaterialTypesOpen(event.currentTarget.open)}>
+              <summary>Material type {activeType && <span>1</span>}</summary>
               <div className="type-options">
                 <button className={activeType === null ? "active" : ""} aria-pressed={activeType === null} onClick={() => chooseType(null)}><span>All materials</span><b>{summary.totalRecords}</b></button>
                 {facets.types.map((facet) => <button key={facet.value} className={activeType === facet.value ? "active" : ""} aria-pressed={activeType === facet.value} onClick={() => chooseType(activeType === facet.value ? null : facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
               </div>
-            </section>
+            </details>
+            <details className="filter-group facet-filter">
+              <summary>Status {activeStatuses.size > 0 && <span>{activeStatuses.size}</span>}</summary>
+              <div className="facet-options" role="group" aria-label="Status filters">
+                {facets.statuses.map((facet) => <button key={facet.value} aria-pressed={activeStatuses.has(facet.value)} className={activeStatuses.has(facet.value) ? "active" : ""} onClick={() => toggleStatus(facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
+              </div>
+            </details>
+            <details className="filter-group facet-filter topic-filter">
+              <summary>Topic {activeDomains.size > 0 && <span>{activeDomains.size}</span>}</summary>
+              <div className="facet-options" role="group" aria-label="Topic filters">
+                {facets.domains.map((facet) => <button key={facet.value} aria-pressed={activeDomains.has(facet.value)} className={activeDomains.has(facet.value) ? "active" : ""} onClick={() => toggleDomain(facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
+              </div>
+            </details>
             <details className="filter-group industry-filter">
               <summary>Industry context</summary>
               <p>Common relevance, not legal applicability.</p>
@@ -294,29 +344,35 @@ function App() {
               </div>
             </details>
             <p className="rail-legal">Educational reference only. Not legal advice, certification, or a compliance determination.</p>
+              </div>
+            </details>
           </aside>
 
-          <section className="results-pane" id="catalog-results" aria-labelledby="catalog-heading">
+          <section ref={resultsPaneRef} className="results-pane" id="catalog-results" aria-labelledby="catalog-heading">
             <div className="results-toolbar">
               <div><span className="section-kicker">Reference library</span><h2 id="catalog-heading">{activeType ? formatCatalogType(activeType, true) : query ? "Search results" : "All materials"}</h2></div>
               <div className="catalog-count" aria-live="polite"><strong>{records.length}</strong><span>of {summary.totalRecords}</span></div>
             </div>
-            {(query || activeType || activeIndustries.size > 0) && <div className="active-filters" aria-label="Active filters">
-              {query && <button onClick={() => setQuery("")}>“{query}” <span>×</span></button>}
-              {activeType && <button onClick={() => setActiveType(null)}>{formatCatalogType(activeType)} <span>×</span></button>}
-              {[...activeIndustries].map((industry) => <button key={industry} onClick={() => toggleIndustry(industry)}>{formatIndustry(industry)} <span>×</span></button>)}
+            {(query || activeType || activeStatuses.size > 0 || activeDomains.size > 0 || activeIndustries.size > 0) && <div className="active-filters" aria-label="Active filters">
+              {query && <button aria-label={`Remove search filter ${query}`} onClick={() => setQuery("")}>“{query}” <span aria-hidden="true">×</span></button>}
+              {activeType && <button aria-label={`Remove ${formatCatalogType(activeType)} filter`} onClick={() => setActiveType(null)}>{formatCatalogType(activeType)} <span aria-hidden="true">×</span></button>}
+              {[...activeStatuses].map((status) => <button key={status} aria-label={`Remove ${humanize(status)} status filter`} onClick={() => toggleStatus(status)}>{humanize(status)} <span aria-hidden="true">×</span></button>)}
+              {[...activeDomains].map((domain) => <button key={domain} aria-label={`Remove ${humanize(domain)} topic filter`} onClick={() => toggleDomain(domain)}>{humanize(domain)} <span aria-hidden="true">×</span></button>)}
+              {[...activeIndustries].map((industry) => <button key={industry} aria-label={`Remove ${formatIndustry(industry)} industry filter`} onClick={() => toggleIndustry(industry)}>{formatIndustry(industry)} <span aria-hidden="true">×</span></button>)}
             </div>}
             {records.length === 0 ? <div className="empty-state"><h3>No references found</h3><p>Try a broader term or reset the filters.</p><button onClick={clearFilters}>Show the full library</button></div> : <div className="record-grid">
               {records.map((record) => {
                 const selected = comparisonIds.includes(record.id);
                 const industryRelevance = getIndustryRelevance(record, activeIndustries);
+                const searchMatch = getCatalogSearchMatch(record, query);
                 return <article className="record-card" key={record.id}>
                   <div className="record-meta"><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><span>{humanize(record.status)}</span></div>
-                  <h3><button onClick={() => openRecord(record)}>{record.name}</button></h3>
+                  <h3><button className="record-title-button" onClick={() => openRecord(record)}><span>{record.name}</span><small aria-hidden="true">Open →</small></button></h3>
                   <p>{record.summary}</p>
+                  {searchMatch && <p className="search-match">{searchMatch.label}</p>}
                   {industryRelevance && <p className={`relevance-note ${industryRelevance.kind}`}>{industryRelevance.label}</p>}
                   <div className="record-footer"><span>{record.issuer}</span><span>{record.version ?? "Version not specified"}</span></div>
-                  <div className="record-actions"><button className="open-record" onClick={() => openRecord(record)}>Open <span aria-hidden="true">→</span></button>{isComparable(record) && <label className="compare-check"><input type="checkbox" checked={selected} onChange={() => changeComparison(record)} /> Compare</label>}</div>
+                  {isComparable(record) && <div className="record-actions"><label className="compare-check"><input type="checkbox" checked={selected} onChange={() => changeComparison(record)} /> Compare</label></div>}
                 </article>;
               })}
             </div>}
@@ -359,7 +415,7 @@ function App() {
               >{section.label}{section.id === "related" && related.length > 0 ? <span>{related.length}</span> : null}</button>)}
             </nav>
 
-            <div className="detail-body">
+            <div ref={detailBodyRef} className="detail-body">
               {detailSection === "overview" && <section className="detail-section" id="record-panel-overview" role="tabpanel" aria-labelledby="record-tab-overview">
                 <div className="overview-grid">
                   <div className="overview-primary">

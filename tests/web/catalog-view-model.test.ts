@@ -6,6 +6,7 @@ import {
   filterCatalog,
   formatCatalogType,
   formatRelationshipAuthority,
+  getCatalogSearchMatch,
   getAdjacentRecordDetailSection,
   getDialogFocusEdge,
   getIndustryRelevance,
@@ -63,6 +64,46 @@ describe("catalog view model", () => {
 
     expect(resultIds).toContain("policy_ai_governance_acceptable_use");
     expect(resultIds).not.toContain("control_endpoint_detection_and_response");
+  });
+
+  it("searches aliases and stable identifiers", () => {
+    const aliased = { ...records[1]!, aliases: ["European privacy rulebook"] };
+    const testRecords = [records[0]!, aliased, records[2]!];
+
+    expect(filterCatalog(testRecords, {
+      query: "privacy rulebook", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
+    }).map((record) => record.id)).toEqual(["regulation_gdpr"]);
+    expect(filterCatalog(testRecords, {
+      query: "regulation_gdpr", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
+    }).map((record) => record.id)).toEqual(["regulation_gdpr"]);
+    expect(filterCatalog(testRecords, {
+      query: "incident-response-policy", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
+    }).map((record) => record.id)).toEqual(["policy_incident_response"]);
+  });
+
+  it("ranks direct identity matches ahead of incidental text matches", () => {
+    const incidental = {
+      ...records[2]!,
+      id: "policy_catalog_note",
+      slug: "catalog-note",
+      name: "Catalog Note",
+      description: "A note that happens to mention NIST CSF.",
+    };
+
+    expect(filterCatalog([incidental, records[0]!], {
+      query: "NIST CSF", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
+    }).map((record) => record.id)).toEqual(["framework_nist_csf_2", "policy_catalog_note"]);
+  });
+
+  it("explains non-obvious search matches without repeating title matches", () => {
+    const aliased = { ...records[1]!, aliases: ["European privacy rulebook"] };
+
+    expect(getCatalogSearchMatch(aliased, "privacy rulebook")).toEqual({ label: "Matched alias" });
+    expect(getCatalogSearchMatch(records[1]!, "GDPR")).toEqual({ label: "Matched acronym" });
+    expect(getCatalogSearchMatch(records[1]!, "European Union")).toEqual({ label: "Matched publisher" });
+    expect(getCatalogSearchMatch(records[0]!, "Risk management")).toEqual({ label: "Matched topic" });
+    expect(getCatalogSearchMatch(records[0]!, "NIST Cybersecurity")).toBeNull();
+    expect(getCatalogSearchMatch(records[0]!, "")).toBeNull();
   });
 
   it("builds sorted browse facets with readable labels and record counts", () => {
