@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { additionalEditorialKnowledgeRecords } from "./catalog-content/editorial-knowledge.js";
+import { additionalExternalRecords } from "./catalog-content/external-references.js";
+import { additionalPolicyRecords } from "./catalog-content/policies.js";
+import { additionalCuratedRelationships } from "./catalog-content/relationships.js";
 
 export const catalogRecordTypes = [
   "framework",
@@ -8,6 +12,11 @@ export const catalogRecordTypes = [
   "policy",
   "control",
   "concept",
+  "law",
+  "contract_clause",
+  "guidance",
+  "criteria",
+  "knowledge_base",
 ] as const;
 
 export const catalogRecordStatuses = ["current", "draft", "superseded", "withdrawn"] as const;
@@ -36,8 +45,18 @@ export const catalogRelationshipTypes = [
 const identifierSchema = z.string().regex(/^[a-z][a-z0-9_]{2,79}$/);
 const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(100);
 const labelSchema = z.string().trim().min(1).max(200);
-const taxonomyValuesSchema = z.array(labelSchema).min(1).max(30);
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const taxonomyValuesSchema = z.array(labelSchema).min(1).max(30)
+  .refine((values) => new Set(values).size === values.length, "Taxonomy values must be unique.");
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const maximumDay = daysInMonth[month - 1];
+  return maximumDay !== undefined && day <= maximumDay;
+}, "Expected a valid calendar date");
 
 const policyDecisionSchema = z.object({
   id: identifierSchema,
@@ -85,6 +104,14 @@ export const policyPlaybookSchema = z.object({
   if (new Set(playbook.checklist.map((item) => item.id)).size !== playbook.checklist.length) {
     context.addIssue({ code: "custom", path: ["checklist"], message: "Checklist identifiers must be unique." });
   }
+  const allIdentifiers = [
+    ...playbook.decisions.map((item) => item.id),
+    ...playbook.approaches.map((item) => item.id),
+    ...playbook.checklist.map((item) => item.id),
+  ];
+  if (new Set(allIdentifiers).size !== allIdentifiers.length) {
+    context.addIssue({ code: "custom", message: "All playbook identifiers must be unique across decisions, approaches, and checklist items." });
+  }
 });
 
 const publisherAuthorityHosts: Readonly<Record<string, readonly string[]>> = {
@@ -94,10 +121,33 @@ const publisherAuthorityHosts: Readonly<Record<string, readonly string[]>> = {
   "PCI Security Standards Council": ["pcisecuritystandards.org"],
   "U.S. Department of Health and Human Services": ["hhs.gov"],
   "European Parliament and Council of the European Union": ["europa.eu"],
+  "ISACA": ["isaca.org"],
+  "HITRUST Alliance": ["hitrustalliance.net"],
+  "U.S. Department of Energy": ["energy.gov"],
+  "Cybersecurity and Infrastructure Security Agency": ["cisa.gov"],
+  "MITRE Corporation": ["mitre.org"],
+  "U.S. Department of Defense": ["defense.gov", "acquisition.gov"],
+  "United States Congress": ["congress.gov"],
+  "U.S. Department of Education": ["ed.gov"],
+  "U.S. Federal Trade Commission": ["ftc.gov"],
+  "New York State Department of Financial Services": ["dfs.ny.gov"],
+  "International Electrotechnical Commission": ["iec.ch"],
+  "American Institute of Certified Public Accountants": ["aicpa-cima.com"],
+  "North American Electric Reliability Corporation": ["nerc.com"],
+  "Cloud Security Alliance": ["cloudsecurityalliance.org"],
+  "OWASP Foundation": ["owasp.org"],
+  "Federal Risk and Authorization Management Program": ["fedramp.gov"],
 };
 
+function hasUrlUserinfo(sourceUrl: string): boolean {
+  const parsedUrl = new URL(sourceUrl);
+  return parsedUrl.username !== "" || parsedUrl.password !== "";
+}
+
 function isRegisteredPublisherUrl(issuer: string, sourceUrl: string): boolean {
-  const hostname = new URL(sourceUrl).hostname.toLocaleLowerCase();
+  const parsedUrl = new URL(sourceUrl);
+  if (hasUrlUserinfo(sourceUrl)) return false;
+  const hostname = parsedUrl.hostname.toLocaleLowerCase();
   return (publisherAuthorityHosts[issuer] ?? []).some((allowedHost) =>
     hostname === allowedHost || hostname.endsWith(`.${allowedHost}`));
 }
@@ -141,6 +191,9 @@ export const catalogRecordSchema = z.object({
     context.addIssue({ code: "custom", message: "Publisher records require an official URL and metadata/summary/link treatment." });
   }
   if (record.contentAuthority === "publisher" && record.officialUrl !== undefined
+    && hasUrlUserinfo(record.officialUrl)) {
+    context.addIssue({ code: "custom", path: ["officialUrl"], message: "Publisher URLs must not contain URL userinfo." });
+  } else if (record.contentAuthority === "publisher" && record.officialUrl !== undefined
     && !isRegisteredPublisherUrl(record.issuer, record.officialUrl)) {
     context.addIssue({ code: "custom", path: ["officialUrl"], message: "Publisher records require a registered publisher host for the issuer." });
   }
@@ -227,6 +280,12 @@ export const catalogSchema = z.object({
           path: ["relationships", index],
           message: "Official relationships require publisher-classified endpoints.",
         });
+      } else if (hasUrlUserinfo(relationship.provenance.sourceUrl)) {
+        context.addIssue({
+          code: "custom",
+          path: ["relationships", index, "provenance", "sourceUrl"],
+          message: "Authoritative source URLs must not contain URL userinfo.",
+        });
       } else if (!isRegisteredPublisherUrl(source.issuer, relationship.provenance.sourceUrl)
         && !isRegisteredPublisherUrl(target.issuer, relationship.provenance.sourceUrl)) {
         context.addIssue({
@@ -264,8 +323,8 @@ const accessControlPolicyPlaybook = {
   contentAuthority: "eidos_editorial",
   contentMarker: "editorial",
   sourceCitation: "Eidos policy playbook editorial guidance",
-  reviewedAt: "2026-09-06",
-  reviewedBy: "Eidos editorial review",
+  reviewedAt: "2026-09-07",
+  reviewedBy: "Rosco — Eidos editorial reviewer",
   outcome: "People receive only the access they need for approved work, and that access is reviewed, changed, and removed predictably.",
   decisions: [
     { id: "decision_access_scope", question: "What does this policy govern?", options: ["Workforce access", "Privileged and administrative access", "Third-party access", "Logical and physical access"] },
@@ -298,8 +357,8 @@ const incidentResponsePolicyPlaybook = {
   contentAuthority: "eidos_editorial",
   contentMarker: "editorial",
   sourceCitation: "Eidos policy playbook editorial guidance",
-  reviewedAt: "2026-09-06",
-  reviewedBy: "Eidos editorial review",
+  reviewedAt: "2026-09-07",
+  reviewedBy: "Rosco — Eidos editorial reviewer",
   outcome: "Security incidents are identified, escalated, contained, communicated, recovered from, and reviewed through a predictable decision process.",
   decisions: [
     { id: "decision_incident_authority", question: "Who may declare and lead an incident?", options: ["Security lead", "Cross-functional incident commander", "Executive-designated authority"] },
@@ -330,6 +389,9 @@ const incidentResponsePolicyPlaybook = {
 
 const rawSampleCatalog = {
   records: [
+    ...additionalExternalRecords,
+    ...additionalEditorialKnowledgeRecords,
+    ...additionalPolicyRecords,
     {
       id: "framework_nist_csf_2_0", slug: "nist-csf-2-0", name: "NIST Cybersecurity Framework 2.0", acronym: "NIST CSF", type: "framework",
       summary: "A voluntary framework for understanding, assessing, prioritizing, and communicating cybersecurity outcomes.",
@@ -359,7 +421,7 @@ const rawSampleCatalog = {
       summary: "A customizable catalog of security and privacy controls for information systems and organizations.",
       description: "NIST SP 800-53 Revision 5 organizes flexible security and privacy controls that can support organization-wide risk management and requirements arising from missions, laws, directives, policies, standards, and guidance.",
       issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States"], industries: ["government"],
-      applicability: "Organizations selecting and tailoring security and privacy controls for information systems and organizational risk, particularly in U.S. government contexts.", version: "Revision 5, Update 1", status: "current",
+      applicability: "Organizations selecting and tailoring security and privacy controls for information systems and organizational risk, particularly in U.S. government contexts.", version: "Revision 5, Release 5.2.0", status: "current",
       officialUrl: "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final", domains: ["security controls", "privacy controls", "risk management"], tags: ["control families", "customizable controls", "information systems"],
     },
     {
@@ -438,6 +500,11 @@ const rawSampleCatalog = {
     },
   ],
   relationships: [
+    ...additionalCuratedRelationships,
+    {
+      id: "relationship_nist_csf_2_supersedes_1_1", source: "framework_nist_csf_2_0", target: "framework_nist_csf_1_1", type: "supersedes", status: "official",
+      provenance: { authority: "authoritative", sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf", sourceLabel: "NIST Cybersecurity Framework 2.0 publication", rationale: "NIST identifies CSF 2.0 as the successor to CSF 1.1." },
+    },
     {
       id: "relationship_nist_contains_governance", source: "framework_nist_csf_2_0", target: "concept_cybersecurity_governance", type: "contains", status: "official",
       provenance: { authority: "authoritative", sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf", sourceLabel: "NIST CSF 2.0 publication — GOVERN Function", rationale: "NIST CSF 2.0 defines GOVERN as one of the framework's six Functions." },
@@ -477,7 +544,18 @@ const rawSampleCatalog = {
   ],
 } as const;
 
-const editorialReview = { reviewedAt: "2026-09-06", reviewedBy: "Eidos editorial review" } as const;
+const editorialReview = { reviewedAt: "2026-09-07", reviewedBy: "Rosco — Eidos editorial reviewer" } as const;
+
+function buildSourceCitation(
+  record: (typeof rawSampleCatalog.records)[number],
+  officialUrl: string | undefined,
+): string {
+  const version = "version" in record && record.version ? `; version ${record.version}` : "";
+  const publicationDate = "publicationDate" in record && record.publicationDate ? `; published ${record.publicationDate}` : "";
+  const effectiveDate = "effectiveDate" in record && record.effectiveDate ? `; effective ${record.effectiveDate}` : "";
+  const source = officialUrl ? `; official source ${officialUrl}` : "; Eidos original editorial record";
+  return `${record.name}${version}${publicationDate}${effectiveDate}${source}; reviewed ${editorialReview.reviewedAt}`;
+}
 
 function enrichRecord(record: (typeof rawSampleCatalog.records)[number]) {
   const officialUrl = "officialUrl" in record ? record.officialUrl : undefined;
@@ -487,7 +565,7 @@ function enrichRecord(record: (typeof rawSampleCatalog.records)[number]) {
     aliases: acronym ? [acronym] : [],
     contentAuthority: officialUrl ? "publisher" as const : "eidos_editorial" as const,
     contentMarker: officialUrl ? "paraphrase" as const : "editorial" as const,
-    sourceCitation: officialUrl ? `${record.issuer} official publisher page` : "Eidos sample library editorial record",
+    sourceCitation: buildSourceCitation(record, officialUrl),
     copyrightTreatment: officialUrl ? "metadata_summary_link" as const : "eidos_original" as const,
     ...editorialReview,
   };
@@ -500,8 +578,11 @@ function enrichRelationship(relationship: (typeof rawSampleCatalog.relationships
   };
 }
 
+const catalogStatusOrder = { current: 0, draft: 1, superseded: 2 } as const;
+
 const sampleCatalog = {
-  records: rawSampleCatalog.records.map(enrichRecord),
+  records: rawSampleCatalog.records.map(enrichRecord)
+    .sort((left, right) => catalogStatusOrder[left.status] - catalogStatusOrder[right.status]),
   relationships: rawSampleCatalog.relationships.map(enrichRelationship),
 };
 
@@ -539,7 +620,8 @@ export function searchCatalog(query: string, filters: CatalogSearchFilters = {})
       record.applicability, record.version ?? "", ...record.jurisdictions, ...record.industries,
       ...record.domains, ...record.tags,
     ].join(" ").toLocaleLowerCase();
-    return terms.every((term) => searchable.includes(term))
+    const searchableTokens = new Set(searchable.split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+    return terms.every((term) => term.length <= 2 ? searchableTokens.has(term) : searchable.includes(term))
       && (filters.types === undefined || filters.types.includes(record.type))
       && (filters.statuses === undefined || filters.statuses.includes(record.status))
       && includesAny(record.jurisdictions, filters.jurisdictions)

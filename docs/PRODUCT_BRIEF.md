@@ -2,7 +2,7 @@
 
 ## Product definition
 
-Eidos is a local-first cybersecurity governance reference library: a searchable Rolodex of frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts, including useful relationships among them.
+Eidos is a local-first cybersecurity governance reference library: a searchable Rolodex of frameworks, laws, regulations, contract clauses, guidance, standards, criteria, knowledge bases, control catalogs, policies, controls, and GRC concepts, including useful relationships among them.
 
 Eidos helps people find a subject, understand it in plain language, inspect where the information came from and which version it describes, and follow related material without assembling the landscape from scattered sources.
 
@@ -48,7 +48,9 @@ Defense/DoD and general government must remain distinct selectable contexts beca
 
 Industry selection is a relevance aid, not a legal applicability determination. Eidos must explain why a record was surfaced and use language such as “commonly relevant” or “potentially applicable” unless an authoritative rule and sufficient user context support a stronger statement.
 
-The current local slice provides multi-select industry filtering with OR semantics, keeps cross-industry references available as broad starting points, and explains whether each result is a direct tag or cross-industry fallback. Industry controls report direct catalog coverage; contexts without a direct record are labeled “Broad only” rather than displaying fallback volume as if it were sector coverage. Government has a source-verified NIST SP 800-53 record, Healthcare has HIPAA, and Financial services/payment processing have PCI DSS context. The Defense/DoD selector currently returns only cross-industry starting references; dedicated CMMC, DFARS, and NIST SP 800-171 records require separate publisher-source review before publication.
+The curated-core target is at least 75 source-reviewed records. It must provide meaningful depth across every supported material type and at least one directly tagged record for every selectable industry context. Cross-industry records remain useful fallback material, but cannot substitute for dedicated Defense/DoD, Government, Healthcare, Financial services, Payment processing, Education, Technology/SaaS, Professional services, Retail, Small business, or Critical infrastructure coverage.
+
+The curated core is a governed starting library, not a claim of exhaustive or permanently current coverage. New material is added in reviewable batches with official publisher provenance, explicit version and jurisdiction context, licensing/copyright treatment, and human editorial review. Regulations, contractual clauses, implementation guidance, standards, control catalogs, policies, controls, and concepts remain separate record types even when they are closely related.
 
 ## Problem
 
@@ -86,8 +88,13 @@ The product opens on the library, not on a client workspace or graph.
 The first catalog recognizes these plain-language material types:
 
 - **Framework:** an organized approach for managing or describing cybersecurity work.
+- **Law:** a statute or enacted legislative instrument.
 - **Regulation:** a rule issued under legal or regulatory authority.
+- **Contract clause:** a contractual provision that may impose defined obligations when incorporated into an agreement.
+- **Guidance:** publisher-issued recommendations, models, or implementation guidance that are not themselves represented as law, regulation, or contract terms.
 - **Standard:** a published set of requirements or specifications.
+- **Criteria:** evaluation or attestation criteria used to judge a defined subject matter.
+- **Knowledge base:** a maintained body of structured reference knowledge, such as adversary behaviors.
 - **Control catalog:** an organized collection of safeguards or control statements.
 - **Policy:** public policy guidance, a policy model, or an example policy suitable for reference. An organization's private policy is not part of the first catalog.
 - **Control:** a safeguard or practice described independently or within a source catalog.

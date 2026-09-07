@@ -56,6 +56,15 @@ describe("catalog view model", () => {
     }).map((record) => record.id)).toEqual(["framework_nist_csf_2"]);
   });
 
+  it("matches short search terms as complete tokens in the browser catalog", () => {
+    const resultIds = filterCatalog(catalogRecords, {
+      query: "AI policy", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
+    }).map((record) => record.id);
+
+    expect(resultIds).toContain("policy_ai_governance_acceptable_use");
+    expect(resultIds).not.toContain("control_endpoint_detection_and_response");
+  });
+
   it("builds sorted browse facets with readable labels and record counts", () => {
     expect(buildCatalogFacets(records).types).toEqual([
       { value: "framework", label: "Frameworks", count: 1 },
@@ -77,6 +86,11 @@ describe("catalog view model", () => {
     ]));
     expect(formatCatalogType("control_catalog", true)).toBe("Control catalogs");
     expect(formatCatalogType("concept")).toBe("GRC concept");
+    expect(formatCatalogType("law", true)).toBe("Laws");
+    expect(formatCatalogType("contract_clause")).toBe("Contract clause");
+    expect(formatCatalogType("guidance", true)).toBe("Guidance");
+    expect(formatCatalogType("criteria")).toBe("Criteria");
+    expect(formatCatalogType("knowledge_base", true)).toBe("Knowledge bases");
   });
 
   it("limits comparison to three eligible references and toggles a selected record off", () => {

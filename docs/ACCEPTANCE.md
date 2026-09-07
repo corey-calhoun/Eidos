@@ -34,7 +34,10 @@ The repository must contain a deterministic, reviewable built-in catalog fixture
 
 Pass when:
 
-- the fixture contains at least one published record for each supported type: framework, regulation, standard, control catalog, policy, control, and GRC concept;
+- the curated-core fixture contains at least 75 published records;
+- each core material type contains at least six records, each specialized publisher-aligned type contains at least one reviewed record, and the policy directory contains at least fifteen records with Policy Playbooks;
+- every selectable industry context other than `cross-industry` has at least one directly tagged record rather than relying exclusively on broad fallback material;
+- the fixture contains at least one published record for each supported type: framework, law, regulation, contract clause, guidance, standard, criteria, knowledge base, control catalog, policy, control, and GRC concept;
 - at least two records share a meaningful comparison topic;
 - at least one record has an alias and at least one has a recognizable identifier;
 - at least one versioned record includes version or revision data;
@@ -44,7 +47,7 @@ Pass when:
 - the fixture uses only material that may be stored and displayed under its source terms; restricted source text is represented by metadata, a short permitted quotation if appropriate, and a link rather than unauthorized reproduction;
 - loading the same fixture repeatedly produces the same published catalog without duplicate records or relationships.
 
-The fixture is representative, not a claim of complete coverage.
+The fixture is a curated core, not a claim of complete or permanently current coverage.
 
 ## 3. Automated acceptance criteria
 
@@ -88,7 +91,7 @@ Pass when automated tests show that:
 
 Pass when automated tests show that:
 
-- the library front door exposes directories for frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts;
+- the library front door exposes directories for frameworks, laws, regulations, contract clauses, guidance, standards, criteria, knowledge bases, control catalogs, policies, controls, and GRC concepts;
 - each directory lists only records of its stated type and displays a deterministic count;
 - users can narrow the current result set by available version/status, jurisdiction, sector, or topic metadata without changing the underlying records;
 - users can select multiple approved industries, with selected industries combined using OR semantics;
@@ -278,7 +281,7 @@ The following are outside the first local MVP and require separate scope and acc
 - accounts, authentication, authorization, tenant isolation, hosted operation, and cloud sync;
 - collaborative editing, editorial approval queues, and append-only audit history;
 - automated publisher monitoring, source ingestion, license enforcement, and update alerts;
-- comprehensive libraries or guarantees that content is current or complete;
+- exhaustive libraries, automated source monitoring, or guarantees that content is permanently current or complete;
 - organization-specific overlays, evidence, assessments, findings, remediation, or Checkpoint integration;
 - AI-assisted drafting or relationship suggestions beyond a non-authoritative, human-reviewed experiment;
 - import/export packages, signed releases, backup/restore automation, and forward migration support;

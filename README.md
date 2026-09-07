@@ -1,6 +1,6 @@
 # Eidos
 
-Eidos is a local-first cybersecurity governance knowledge library: a searchable Rolodex of frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts.
+Eidos is a local-first cybersecurity governance knowledge library: a searchable Rolodex of frameworks, laws, regulations, contract clauses, guidance, standards, criteria, knowledge bases, control catalogs, policies, controls, and GRC concepts.
 
 The product opens on the library. A user can search or browse the catalog, open a plain-language reference record, use an action-oriented Policy Playbook when available, verify publisher and source context, follow related material, and compare references. A relationship view may support exploration later, but it is not the front door and is not required to use the library.
 
@@ -8,7 +8,7 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 
 ## Current catalog-first MVP
 
-- Built-in, deterministic catalog with representative framework, regulation, standard, control-catalog, policy, control, and GRC-concept records.
+- Built-in, deterministic curated core with 77 records across 12 publisher-aligned material types.
 - Universal local search across names, acronyms, descriptions, publishers, applicability, domains, and tags.
 - Browse-by-type directories and catalog filters.
 - Centralized desktop workspace with a compact filter rail, contained result scrolling, and a centered record dialog so the primary journey stays within one viewport.
@@ -16,7 +16,7 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 - Per-result explanations distinguish direct industry tags from broadly useful cross-industry references.
 - Reference cards and detailed record inspection.
 - Focused Overview, Playbook, Related, and Source & trust tabs keep dense record content separated and keyboard navigable instead of presenting one long drawer.
-- Action-first Policy Playbooks for the built-in Access Control and Incident Response policies, including tailoring decisions, implementation approaches, phased starter checklists, likely owners, evidence examples, and review triggers.
+- Action-first Policy Playbooks for all 20 built-in policies, including tailoring decisions, implementation approaches, phased starter checklists, likely owners, evidence examples, and review triggers.
 - General playbook guidance can be augmented by selected-industry context prompts without asserting legal applicability.
 - Policy source and authority metadata remains available in the dedicated Source & trust tab; a persistent authority badge remains visible across every detail section.
 - Explicit issuer, version/status, jurisdiction, applicability, and official-source metadata where applicable.
@@ -26,7 +26,7 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 - Loopback-only Fastify API with strict query validation and existing defensive Host, Origin, response-header, and body-size controls.
 - No external account, cloud service, telemetry, or AI service is required.
 
-The built-in catalog is representative, not comprehensive. Government includes a source-verified NIST SP 800-53 record; Healthcare includes HIPAA; Financial services/payment processing include PCI DSS context. The Defense/DoD selector currently provides cross-industry starting references rather than dedicated CMMC/DFARS coverage. Eidos is educational and operational reference material—not legal advice, an audit, certification, or a determination that a law applies to a particular organization.
+The built-in catalog is a reviewed core, not an exhaustive or automatically current legal library. Every selectable industry has direct coverage; Defense/DoD includes CMMC, DFARS 252.204-7012, and NIST SP 800-171 context, while Government, Healthcare, Financial services, Payment processing, Education, Technology/SaaS, Retail, Small business, and Critical infrastructure retain distinct records. Industry tags and Eidos-curated relationships are orientation aids, not legal-applicability, certification, audit, or compliance determinations. See [`docs/CATALOG_COVERAGE.md`](docs/CATALOG_COVERAGE.md) for inclusion and review rules.
 
 ## Prerequisites
 
@@ -141,6 +141,7 @@ Loopback restrictions are not authentication. Do not proxy, tunnel, publish, or 
 
 - [Product brief](./docs/PRODUCT_BRIEF.md)
 - [Catalog-first acceptance contract](./docs/ACCEPTANCE.md)
+- [Curated catalog coverage and review rules](./docs/CATALOG_COVERAGE.md)
 - [Operations](./docs/OPERATIONS.md)
 - [Security requirements](./docs/SECURITY_REQUIREMENTS.md)
 - [Threat model](./docs/THREAT_MODEL.md)

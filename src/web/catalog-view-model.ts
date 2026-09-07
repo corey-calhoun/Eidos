@@ -28,6 +28,11 @@ const TYPE_LABELS: Readonly<Record<string, readonly [string, string]>> = {
   policy: ["Policy", "Policies"],
   control: ["Control", "Controls"],
   concept: ["GRC concept", "GRC concepts"],
+  law: ["Law", "Laws"],
+  contract_clause: ["Contract clause", "Contract clauses"],
+  guidance: ["Guidance", "Guidance"],
+  criteria: ["Criteria", "Criteria"],
+  knowledge_base: ["Knowledge base", "Knowledge bases"],
 };
 
 const INDUSTRY_LABELS: Readonly<Record<CatalogIndustry, string>> = {
@@ -227,7 +232,8 @@ export function filterCatalog<T extends CatalogViewRecord>(
       ...record.domains,
       ...record.tags,
     ].join(" ").toLocaleLowerCase();
-    return terms.every((term) => searchable.includes(term));
+    const searchableTokens = new Set(searchable.split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+    return terms.every((term) => term.length <= 2 ? searchableTokens.has(term) : searchable.includes(term));
   });
 }
 

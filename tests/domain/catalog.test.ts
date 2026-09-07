@@ -127,6 +127,12 @@ describe("catalog validation", () => {
     expect(() => validateCatalog({ records: [record, { ...concept, slug: record.slug }], relationships: [] })).toThrow(/slugs/i);
   });
 
+  it("rejects impossible calendar dates rather than only checking date shape", () => {
+    expect(() => validateCatalog({ records: [{ ...record, reviewedAt: "2025-02-30" }], relationships: [] })).toThrow(/calendar date/i);
+    expect(() => validateCatalog({ records: [{ ...record, publicationDate: "2026-99-99" }], relationships: [] })).toThrow(/calendar date/i);
+    expect(() => validateCatalog({ records: [{ ...record, effectiveDate: "2026-04-31" }], relationships: [] })).toThrow(/calendar date/i);
+  });
+
   it("rejects unsupported industry taxonomy values", () => {
     expect(() => validateCatalog({
       records: [{ ...record, industries: ["made-up-sector"] }],
@@ -138,11 +144,24 @@ describe("catalog validation", () => {
     })).toThrow(/unique/i);
   });
 
+  it("rejects duplicate values in generic taxonomy arrays", () => {
+    for (const field of ["jurisdictions", "domains", "tags"] as const) {
+      expect(() => validateCatalog({
+        records: [{ ...record, [field]: [record[field][0], record[field][0]] }],
+        relationships: [],
+      })).toThrow(/unique/i);
+    }
+  });
+
   it("rejects publisher authority claimed through an unregistered source host", () => {
     expect(() => validateCatalog({
       records: [{ ...record, officialUrl: "https://attacker.invalid/fake" }],
       relationships: [],
     })).toThrow(/registered publisher host/i);
+    expect(() => validateCatalog({
+      records: [{ ...record, officialUrl: "https://attacker.invalid@nist.gov/fake" }],
+      relationships: [],
+    })).toThrow(/userinfo/i);
   });
 
   it("accepts strict policy playbooks and rejects assessment state or non-policy attachment", () => {
@@ -198,6 +217,16 @@ describe("catalog validation", () => {
       records: [{ ...policy, playbook: { ...policyPlaybook, approaches: [policyPlaybook.approaches[0], policyPlaybook.approaches[0]] } }],
       relationships: [],
     })).toThrow(/approach identifiers/i);
+    expect(() => validateCatalog({
+      records: [{
+        ...policy,
+        playbook: {
+          ...policyPlaybook,
+          approaches: [{ ...policyPlaybook.approaches[0], id: policyPlaybook.decisions[0].id }],
+        },
+      }],
+      relationships: [],
+    })).toThrow(/all playbook identifiers/i);
   });
 
   it("rejects dangling relationship references", () => {
@@ -259,6 +288,27 @@ describe("catalog validation", () => {
         },
       }],
     })).toThrow(/publisher-classified endpoints/i);
+  });
+
+  it("rejects URL userinfo in authoritative relationship provenance", () => {
+    expect(() => validateCatalog({
+      records: [record, publisherConcept],
+      relationships: [{
+        id: "relationship_userinfo_authority",
+        source: record.id,
+        target: publisherConcept.id,
+        type: "contains",
+        status: "official",
+        provenance: {
+          authority: "authoritative",
+          sourceUrl: "https://attacker.invalid@nist.gov/fake",
+          sourceLabel: "Deceptive authority URL",
+          rationale: "URL userinfo must not be accepted as authoritative provenance.",
+          reviewedAt: "2026-09-06",
+          reviewedBy: "Eidos editorial review",
+        },
+      }],
+    })).toThrow(/userinfo/i);
   });
 
   it("requires Eidos-curated relationships to be explicitly non-authoritative", () => {
@@ -349,10 +399,36 @@ describe("curated catalog", () => {
     expect(policies.every((item) => item.playbook !== undefined)).toBe(true);
   });
 
+  it("contains curated-core depth across every record type and industry context", () => {
+    expect(catalogRecords.length).toBeGreaterThanOrEqual(75);
+
+    const minimumByType = {
+      framework: 6,
+      regulation: 6,
+      standard: 6,
+      control_catalog: 6,
+      policy: 15,
+      control: 6,
+      concept: 6,
+      law: 2,
+      contract_clause: 1,
+      guidance: 1,
+      criteria: 1,
+      knowledge_base: 1,
+    } as const;
+    for (const [type, minimum] of Object.entries(minimumByType)) {
+      expect(catalogRecords.filter((item) => item.type === type).length, type).toBeGreaterThanOrEqual(minimum);
+    }
+
+    for (const industry of catalogIndustries.filter((item) => item !== "cross-industry")) {
+      expect(catalogRecords.some((item) => item.industries.includes(industry)), industry).toBe(true);
+    }
+  });
+
   it("contains useful coverage across all required record types and sources", () => {
     expect(catalogRecords).toBe(catalog.records);
     expect(catalogRelationships).toBe(catalog.relationships);
-    expect(catalog.records.length).toBeGreaterThanOrEqual(10);
+    expect(catalog.records.length).toBeGreaterThanOrEqual(75);
     expect(new Set(catalog.records.map((item) => item.type))).toEqual(new Set([
       "framework",
       "regulation",
@@ -361,10 +437,20 @@ describe("curated catalog", () => {
       "policy",
       "control",
       "concept",
+      "law",
+      "contract_clause",
+      "guidance",
+      "criteria",
+      "knowledge_base",
     ]));
 
     const namesAndAcronyms = catalog.records.map((item) => `${item.name} ${item.acronym ?? ""}`).join(" ");
-    for (const expected of ["NIST Cybersecurity Framework", "ISO/IEC 27001", "CIS Controls", "PCI DSS", "HIPAA Security Rule", "General Data Protection Regulation"]) {
+    for (const expected of [
+      "NIST Cybersecurity Framework", "ISO/IEC 27001", "CIS Controls", "PCI DSS", "HIPAA Security Rule", "General Data Protection Regulation",
+      "NIST SP 800-171 Revision 3", "Cybersecurity Maturity Model Certification", "Family Educational Rights and Privacy Act",
+      "FTC Safeguards Rule", "Digital Operational Resilience Act", "Cross-Sector Cybersecurity Performance Goals",
+      "Cloud Controls Matrix", "OWASP Application Security Verification Standard", "NERC Critical Infrastructure Protection Standards",
+    ]) {
       expect(namesAndAcronyms).toContain(expected);
     }
     expect(catalog.records.every((item) => item.aliases !== undefined
@@ -383,6 +469,33 @@ describe("curated catalog", () => {
     expect(catalog.relationships.filter((item) => item.status === "official").every((item) =>
       byId.get(item.source)?.contentAuthority === "publisher"
       && byId.get(item.target)?.contentAuthority === "publisher")).toBe(true);
+    expect(catalog.records.every((item) => item.sourceCitation.includes(item.name)
+      && (item.officialUrl === undefined || item.sourceCitation.includes(item.officialUrl)))).toBe(true);
+    expect(catalog.records.every((item) => item.reviewedBy.includes("Rosco"))).toBe(true);
+    expect(catalog.records.some((item) => item.status === "superseded")).toBe(true);
+    expect(catalog.relationships.some((item) => item.type === "supersedes" && item.status === "official")).toBe(true);
+
+    const relationshipDegree = new Map(catalog.records.map((item) => [item.id, 0]));
+    for (const relationship of catalog.relationships) {
+      relationshipDegree.set(relationship.source, relationshipDegree.get(relationship.source)! + 1);
+      relationshipDegree.set(relationship.target, relationshipDegree.get(relationship.target)! + 1);
+    }
+    expect(catalog.records.filter((item) => relationshipDegree.get(item.id) === 0).map((item) => item.name)).toEqual([]);
+  });
+
+  it("keeps legally and operationally distinct material types separate", () => {
+    const typeBySlug = new Map(catalogRecords.map((record) => [record.slug, record.type]));
+    expect(typeBySlug.get("fisma-2014")).toBe("law");
+    expect(typeBySlug.get("ferpa")).toBe("law");
+    expect(typeBySlug.get("dfars-252-204-7012")).toBe("contract_clause");
+    expect(typeBySlug.get("cisa-zero-trust-maturity-model-2-0")).toBe("guidance");
+    expect(typeBySlug.get("aicpa-trust-services-criteria")).toBe("criteria");
+    expect(typeBySlug.get("mitre-attack")).toBe("knowledge_base");
+  });
+
+  it("preserves source-reviewed publication metadata for key curated records", () => {
+    expect(catalogRecords.find((record) => record.slug === "cisa-zero-trust-maturity-model-2-0")?.publicationDate)
+      .toBe("2023-04-11");
   });
 
   it("searches case-insensitively across catalog text and applies filters", () => {
@@ -390,6 +503,12 @@ describe("curated catalog", () => {
     expect(searchCatalog("nist", { types: ["framework"], domains: ["governance"] }).map((item) => item.slug)).toContain("nist-csf-2-0");
     expect(searchCatalog("", { jurisdictions: ["European Union"] }).map((item) => item.slug)).toContain("gdpr");
     expect(searchCatalog("payment", { industries: ["payment-processing"] }).map((item) => item.slug)).toContain("pci-dss-v4-0-1");
+  });
+
+  it("matches short acronyms as tokens instead of substrings inside unrelated words", () => {
+    const results = searchCatalog("AI policy");
+    expect(results.map((item) => item.slug)).toContain("ai-governance-acceptable-use-policy");
+    expect(results.map((item) => item.slug)).not.toContain("endpoint-detection-and-response-control");
   });
 
   it("filters by approved industries while retaining cross-industry references", () => {
@@ -421,6 +540,23 @@ describe("curated catalog", () => {
     expect(nist?.acronym).toBe("NIST CSF");
     expect(getRecordBySlug("missing")).toBeUndefined();
     expect(() => nist?.tags.push("mutation")).toThrow();
+  });
+
+  it("provides relationships for high-value curated-core entry points", () => {
+    for (const slug of [
+      "cmmc-32-cfr-part-170",
+      "nist-sp-800-171-rev-3",
+      "ferpa",
+      "nist-ai-rmf-1-0",
+      "nist-secure-software-development-framework-1-1",
+      "cloud-controls-matrix-4-1",
+      "cloud-security-policy",
+      "secure-development-application-security-policy",
+    ]) {
+      const record = getRecordBySlug(slug);
+      expect(record, `${slug} should exist`).toBeDefined();
+      expect(getRelatedRecords(record!.id).length, `${slug} should have related guidance`).toBeGreaterThan(0);
+    }
   });
 
   it("returns related records with relationship direction and provenance", () => {
