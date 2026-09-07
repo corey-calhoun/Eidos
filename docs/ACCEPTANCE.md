@@ -18,6 +18,7 @@ The MVP is accepted only when a reviewer can use the library front door to:
 search or browse
   -> scan reference cards
   -> open a reference detail
+  -> use a policy playbook when available
   -> verify source and version context
   -> follow a related item
   -> compare selected records
@@ -106,6 +107,10 @@ Pass when automated tests show that:
 - each published record has a stable route or deep link;
 - a reference card identifies the record without requiring the user to open a graph;
 - the detail view shows title, type, summary, publisher, authoritative citation/link, known version and date context, status, applicability context, tags, and review provenance;
+- every policy record with a playbook leads with its intended outcome, tailoring decisions, implementation approaches, phased checklist, likely owners, evidence examples, and review triggers;
+- selected industry context may include reviewed Eidos-authored checklist items, while general items remain available and the UI states that tailoring is orientation rather than legal applicability;
+- policy playbooks expose no completion state, evidence upload, gap, finding, score, or readiness determination;
+- source, authority, and provenance remain available as a secondary trust section rather than displacing the policy playbook;
 - unknown or not-applicable metadata is labeled plainly rather than omitted in a misleading way;
 - external links are visibly identified and use safe browser behavior;
 - a missing or unknown record ID produces a safe not-found state with a route back to the library.
@@ -184,6 +189,8 @@ Pass when an independent reviewer confirms that:
 - the reviewer can find one fixture item by title, one by alias or identifier, and one unfamiliar item by browsing;
 - the reviewer can complete the full acceptance workflow in Section 1 without opening a relationship map;
 - page and control language describes a library/reference task rather than a client assessment task.
+- at desktop widths, the search, filters, result heading, and first result row fit within one browser viewport; additional results scroll inside the library workspace rather than forcing a long page traversal;
+- record details open in a centered, viewport-bounded workspace with focused Overview, Playbook when available, Related, and Source & trust sections;
 
 ### AC-12 — Source and version comprehension
 
@@ -208,6 +215,8 @@ Pass when an independent reviewer confirms that:
 - 200% browser zoom preserves the core journey without loss of content or function;
 - reduced-motion preference does not remove content or required function;
 - information is not conveyed by color alone.
+- record-detail tabs expose correct tab/tabpanel semantics and support Left Arrow, Right Arrow, Home, and End navigation;
+- dense policy guidance is grouped into labeled, keyboard-operable disclosures so users can open only the decision area they need;
 
 Automated accessibility checks support but do not replace keyboard and zoom review.
 

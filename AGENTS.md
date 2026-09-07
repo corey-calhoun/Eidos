@@ -6,7 +6,7 @@ Eidos is a local-first, catalog-first cybersecurity governance knowledge library
 
 The primary user journey is:
 
-`search or browse → understand a reference record → inspect authoritative source/version/applicability → follow related materials → optionally compare or visualize relationships`
+`search or browse → understand a reference record → use an actionable policy playbook when available → inspect source/version/applicability → follow related materials → optionally compare or visualize relationships`
 
 The catalog and record detail experience are the primary reasoning surfaces. A relationship graph may support exploration, but it must never displace the searchable library as the product front door. Eidos explains the cybersecurity governance landscape; Checkpoint separately assesses an organization's readiness against that landscape.
 
@@ -33,9 +33,9 @@ The catalog and record detail experience are the primary reasoning surfaces. A r
 1. Preserve the trust flow: authoritative source material → normalized catalog records → explicit relationships → optional AI explanation or candidate analysis.
 2. Never represent AI-inferred content, relationships, or compliance conclusions as authoritative.
 3. Publisher records require an official source, citation, paraphrase marker, copyright treatment, and editorial review metadata. Eidos-authored material must remain visibly editorial.
-4. Every relationship requires a plain-language rationale, review metadata, and explicit authority. Verified relationships require authoritative publisher provenance and publisher-classified endpoints.
+4. Every relationship requires a plain-language rationale, review metadata, and explicit authority. Official relationships require authoritative publisher provenance and publisher-classified endpoints.
 5. Unknown fields, duplicate identifiers, dangling relationships, malformed catalog data, and incompatible persisted historical data must fail closed.
-6. Eidos explains governance knowledge; it does not calculate or assert organizational compliance or readiness.
+6. Eidos explains governance knowledge; it does not calculate or assert organizational compliance or readiness. Policy playbooks may tailor starter guidance to a selected context, but they must not store completion state, evidence, findings, gaps, or scores.
 7. Preserve loopback binding, Host/Origin restrictions, defensive response headers, body limits, and non-authoritative AI responses.
 8. Never commit client assessment data, evidence, exports, database files or sidecars, environment files, credentials, or secrets.
 9. Do not deploy, expose ports to a LAN, proxy, tunnel, or publish Eidos without explicit approval and a separate production security review.

@@ -2,18 +2,23 @@
 
 Eidos is a local-first cybersecurity governance knowledge library: a searchable Rolodex of frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts.
 
-The product opens on the library. A user can search or browse the catalog, open a plain-language reference record, check its publisher and source, understand version and applicability context, follow related material, and compare references. A relationship view may support exploration later, but it is not the front door and is not required to use the library.
+The product opens on the library. A user can search or browse the catalog, open a plain-language reference record, use an action-oriented Policy Playbook when available, verify publisher and source context, follow related material, and compare references. A relationship view may support exploration later, but it is not the front door and is not required to use the library.
 
-Eidos explains the knowledge landscape. It does not assess an organization's readiness; that remains Checkpoint's role.
+Eidos explains the knowledge landscape and offers practical starter guidance. It does not store checklist completion, collect organization evidence, identify gaps, or assess readiness; those workflows remain Checkpoint's role.
 
 ## Current catalog-first MVP
 
 - Built-in, deterministic catalog with representative framework, regulation, standard, control-catalog, policy, control, and GRC-concept records.
 - Universal local search across names, acronyms, descriptions, publishers, applicability, domains, and tags.
 - Browse-by-type directories and catalog filters.
+- Centralized desktop workspace with a compact filter rail, contained result scrolling, and a centered record dialog so the primary journey stays within one viewport.
 - Multi-select industry filtering with distinct Defense/DoD, Government, Healthcare, Financial services, Payment processing, and Education contexts.
 - Per-result explanations distinguish direct industry tags from broadly useful cross-industry references.
 - Reference cards and detailed record inspection.
+- Focused Overview, Playbook, Related, and Source & trust tabs keep dense record content separated and keyboard navigable instead of presenting one long drawer.
+- Action-first Policy Playbooks for the built-in Access Control and Incident Response policies, including tailoring decisions, implementation approaches, phased starter checklists, likely owners, evidence examples, and review triggers.
+- General playbook guidance can be augmented by selected-industry context prompts without asserting legal applicability.
+- Policy source and authority metadata remains available in the dedicated Source & trust tab; a persistent authority badge remains visible across every detail section.
 - Explicit issuer, version/status, jurisdiction, applicability, and official-source metadata where applicable.
 - Related-material navigation that distinguishes official publisher relationships, Eidos-curated context, and unverified candidates.
 - Side-by-side comparison for selected governance references.

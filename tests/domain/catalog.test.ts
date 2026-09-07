@@ -62,6 +62,41 @@ const publisherConcept = {
   copyrightTreatment: "metadata_summary_link" as const,
 };
 
+const policyPlaybook = {
+  contentAuthority: "eidos_editorial",
+  contentMarker: "editorial",
+  sourceCitation: "Eidos policy playbook editorial guidance",
+  reviewedAt: "2026-09-06",
+  reviewedBy: "Eidos editorial review",
+  outcome: "Access is limited to authorized people for approved business purposes.",
+  decisions: [{
+    id: "decision_approval_model",
+    question: "Who may approve access?",
+    options: ["Manager and resource owner", "Role-based preapproval"],
+  }],
+  approaches: [{
+    id: "approach_lightweight",
+    name: "Lightweight centralized review",
+    whenToUse: "Smaller environments with a limited application inventory.",
+    tradeoff: "Simple to operate, but more dependent on manual review.",
+  }],
+  checklist: [{
+    id: "checklist_define_scope",
+    phase: "define",
+    title: "Define the policy scope",
+    guidance: "Identify the people, systems, locations, and access types governed by the policy.",
+  }, {
+    id: "checklist_health_context",
+    phase: "define",
+    title: "Identify sensitive health-data systems",
+    guidance: "Identify systems and workflows that handle health information before tailoring access rules.",
+    industries: ["healthcare"],
+  }],
+  suggestedOwners: ["Identity and access management", "Information security"],
+  evidenceExamples: ["Approved access requests", "Periodic access review records"],
+  reviewTriggers: ["Material system or organizational change", "Security incident"],
+};
+
 describe("catalog validation", () => {
   it("accepts strict records and authoritative relationships", () => {
     const parsed = validateCatalog({
@@ -108,6 +143,61 @@ describe("catalog validation", () => {
       records: [{ ...record, officialUrl: "https://attacker.invalid/fake" }],
       relationships: [],
     })).toThrow(/registered publisher host/i);
+  });
+
+  it("accepts strict policy playbooks and rejects assessment state or non-policy attachment", () => {
+    const policy = {
+      ...record,
+      id: "policy_example",
+      slug: "example-policy",
+      type: "policy",
+      contentAuthority: "eidos_editorial",
+      contentMarker: "editorial",
+      copyrightTreatment: "eidos_original",
+      officialUrl: undefined,
+      playbook: policyPlaybook,
+    };
+    expect(() => validateCatalog({ records: [policy], relationships: [] })).not.toThrow();
+    expect(() => validateCatalog({ records: [{ ...record, type: "policy", playbook: policyPlaybook }], relationships: [] })).not.toThrow();
+    const { contentAuthority: _authority, ...playbookWithoutAuthority } = policyPlaybook;
+    expect(() => validateCatalog({ records: [{ ...policy, playbook: playbookWithoutAuthority }], relationships: [] })).toThrow(/contentAuthority/);
+    expect(() => validateCatalog({ records: [{ ...record, playbook: policyPlaybook }], relationships: [] })).toThrow(/policy records/i);
+    expect(() => validateCatalog({
+      records: [{
+        ...policy,
+        playbook: {
+          ...policyPlaybook,
+          checklist: [{ ...policyPlaybook.checklist[0], completed: true }],
+        },
+      }],
+      relationships: [],
+    })).toThrow();
+  });
+
+  it("rejects duplicate identifiers inside a policy playbook", () => {
+    const policy = {
+      ...record,
+      id: "policy_duplicate_playbook_ids",
+      slug: "duplicate-playbook-ids",
+      type: "policy",
+      contentAuthority: "eidos_editorial",
+      contentMarker: "editorial",
+      copyrightTreatment: "eidos_original",
+      officialUrl: undefined,
+      playbook: policyPlaybook,
+    };
+    expect(() => validateCatalog({
+      records: [{ ...policy, playbook: { ...policyPlaybook, checklist: [policyPlaybook.checklist[0], policyPlaybook.checklist[0]] } }],
+      relationships: [],
+    })).toThrow(/checklist identifiers/i);
+    expect(() => validateCatalog({
+      records: [{ ...policy, playbook: { ...policyPlaybook, decisions: [policyPlaybook.decisions[0], policyPlaybook.decisions[0]] } }],
+      relationships: [],
+    })).toThrow(/decision identifiers/i);
+    expect(() => validateCatalog({
+      records: [{ ...policy, playbook: { ...policyPlaybook, approaches: [policyPlaybook.approaches[0], policyPlaybook.approaches[0]] } }],
+      relationships: [],
+    })).toThrow(/approach identifiers/i);
   });
 
   it("rejects dangling relationship references", () => {
@@ -253,6 +343,12 @@ describe("catalog validation", () => {
 });
 
 describe("curated catalog", () => {
+  it("provides action-oriented playbooks for every built-in policy record", () => {
+    const policies = catalogRecords.filter((item) => item.type === "policy");
+    expect(policies.length).toBeGreaterThan(0);
+    expect(policies.every((item) => item.playbook !== undefined)).toBe(true);
+  });
+
   it("contains useful coverage across all required record types and sources", () => {
     expect(catalogRecords).toBe(catalog.records);
     expect(catalogRelationships).toBe(catalog.relationships);

@@ -72,13 +72,14 @@ From one search box or browse directory, a user can reach a clear reference reco
 
 The product opens on the library, not on a client workspace or graph.
 
-1. Search across the whole catalog or browse a directory by material type.
-2. Scan concise reference cards and narrow the results with useful filters.
-3. Open a detail view to read the plain-language explanation.
-4. Inspect publisher, authoritative source, version or revision, status, dates, applicability, and the record's review history.
-5. Follow related materials and see why each relationship exists and how it is sourced.
-6. Compare selected records side by side.
-7. Optionally open a relationship map to explore the same catalog neighborhood visually.
+1. Search across the whole catalog or browse a compact material-type and industry filter rail.
+2. Scan concise reference cards in a contained result workspace without traversing a long landing page.
+3. Open a centered detail workspace that begins with a plain-language overview.
+4. Move among focused Overview, Playbook, Related, and Source & trust sections rather than scrolling through every information class at once.
+5. Inspect publisher, authoritative source, version or revision, status, dates, applicability, and the record's review history in the dedicated trust section.
+6. Follow related materials and see why each relationship exists and how it is sourced.
+7. Compare selected records side by side.
+8. Optionally open a relationship map to explore the same catalog neighborhood visually.
 
 ## Catalog objects
 
@@ -110,6 +111,23 @@ Every published record must provide enough context to judge what it represents. 
 - a clear distinction between source text, quotation, paraphrase, and editorial explanation.
 
 The product should not fill missing metadata with guesses.
+
+## Policy playbooks
+
+Policy records should lead with practical action rather than publisher metadata. When a reviewed playbook exists, the detail experience should provide:
+
+- the outcome the policy is intended to produce;
+- decisions the organization must make while tailoring the policy;
+- alternative implementation approaches and their tradeoffs;
+- a phased starter checklist;
+- likely owners and reviewers;
+- examples of evidence an organization commonly retains;
+- events that should trigger policy review;
+- selected-industry context where an Eidos-authored checklist item has been reviewed for that context.
+
+Playbooks are Eidos editorial guidance. Industry-tailored items must be labeled as orientation rather than legal applicability. Publisher metadata, citations, authority, and related materials remain available as a secondary trust layer.
+
+Eidos does not store whether checklist items are complete, collect organization evidence, calculate gaps, or score readiness. Those organization-specific workflows belong to Checkpoint.
 
 ## Relationships
 

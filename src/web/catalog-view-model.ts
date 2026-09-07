@@ -55,6 +55,66 @@ export function formatRelationshipAuthority(status: CatalogRelationship["status"
   return "Unverified candidate — not established";
 }
 
+function formatList(values: readonly string[]): string {
+  if (values.length < 2) return values[0] ?? "";
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
+}
+
+export function buildPolicyPlaybookView(
+  record: CatalogViewRecord,
+  selectedIndustries: ReadonlySet<CatalogIndustry>,
+) {
+  if (record.type !== "policy" || record.playbook === undefined) return null;
+  const supportedIndustries = new Set(record.playbook.checklist.flatMap((item) => item.industries ?? []));
+  const contextualIndustries = catalogIndustries.filter((industry) =>
+    industry !== "cross-industry"
+    && selectedIndustries.has(industry)
+    && supportedIndustries.has(industry));
+  const checklist = record.playbook.checklist.filter((item) =>
+    item.industries === undefined
+    || contextualIndustries.some((industry) => item.industries?.includes(industry)));
+  const tailoredIndustries = contextualIndustries.filter((industry) =>
+    record.playbook?.checklist.some((item) => item.industries?.includes(industry)));
+  return {
+    ...record.playbook,
+    checklist,
+    contextLabel: tailoredIndustries.length === 0
+      ? "General starter guidance"
+      : `Tailored for ${formatList(tailoredIndustries.map(formatIndustry))}`,
+  };
+}
+
+export type RecordDetailSection = "overview" | "playbook" | "related" | "source";
+
+export interface RecordDetailSectionOption {
+  id: RecordDetailSection;
+  label: string;
+}
+
+export function getRecordDetailSections(record: CatalogViewRecord): RecordDetailSectionOption[] {
+  return [
+    { id: "overview", label: "Overview" },
+    ...(record.type === "policy" && record.playbook !== undefined
+      ? [{ id: "playbook" as const, label: "Playbook" }]
+      : []),
+    { id: "related", label: "Related" },
+    { id: "source", label: "Source & trust" },
+  ];
+}
+
+export function getAdjacentRecordDetailSection(
+  current: RecordDetailSection,
+  direction: "previous" | "next",
+  record: CatalogViewRecord,
+): RecordDetailSection {
+  const sections = getRecordDetailSections(record);
+  const currentIndex = sections.findIndex((section) => section.id === current);
+  if (currentIndex < 0) return sections[0]!.id;
+  const offset = direction === "next" ? 1 : -1;
+  return sections[(currentIndex + offset + sections.length) % sections.length]!.id;
+}
+
 export function formatCatalogType(type: string, plural = false): string {
   const known = TYPE_LABELS[type];
   if (known) return known[plural ? 1 : 0];
@@ -72,6 +132,20 @@ export function getRecordDialogFocusAction(
 ): "focus_dialog" | "restore_library" | null {
   if (isOpen) return "focus_dialog";
   return wasOpen ? "restore_library" : null;
+}
+
+export type DialogFocusEdge = "first" | "last";
+
+export function getDialogFocusEdge(
+  activeIndex: number,
+  focusableCount: number,
+  reverse: boolean,
+): DialogFocusEdge | null {
+  if (focusableCount < 1) return null;
+  if (activeIndex < 0) return reverse ? "last" : "first";
+  if (reverse && activeIndex === 0) return "last";
+  if (!reverse && activeIndex === focusableCount - 1) return "first";
+  return null;
 }
 
 function countFacets(values: readonly string[], labels: (value: string) => string): CatalogFacet[] {

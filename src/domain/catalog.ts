@@ -39,6 +39,54 @@ const labelSchema = z.string().trim().min(1).max(200);
 const taxonomyValuesSchema = z.array(labelSchema).min(1).max(30);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+const policyDecisionSchema = z.object({
+  id: identifierSchema,
+  question: z.string().trim().min(1).max(300),
+  options: z.array(z.string().trim().min(1).max(200)).min(2).max(6),
+}).strict();
+
+const policyApproachSchema = z.object({
+  id: identifierSchema,
+  name: labelSchema,
+  whenToUse: z.string().trim().min(1).max(500),
+  tradeoff: z.string().trim().min(1).max(500),
+}).strict();
+
+const policyChecklistItemSchema = z.object({
+  id: identifierSchema,
+  phase: z.enum(["define", "implement", "operate", "review"]),
+  title: labelSchema,
+  guidance: z.string().trim().min(1).max(700),
+  industries: z.array(z.enum(catalogIndustries)).min(1).max(catalogIndustries.length)
+    .refine((values) => new Set(values).size === values.length, "Industry values must be unique.")
+    .optional(),
+}).strict();
+
+export const policyPlaybookSchema = z.object({
+  contentAuthority: z.literal("eidos_editorial"),
+  contentMarker: z.literal("editorial"),
+  sourceCitation: labelSchema,
+  reviewedAt: dateSchema,
+  reviewedBy: labelSchema,
+  outcome: z.string().trim().min(1).max(700),
+  decisions: z.array(policyDecisionSchema).min(1).max(12),
+  approaches: z.array(policyApproachSchema).min(1).max(8),
+  checklist: z.array(policyChecklistItemSchema).min(1).max(40),
+  suggestedOwners: z.array(labelSchema).min(1).max(12),
+  evidenceExamples: z.array(labelSchema).min(1).max(20),
+  reviewTriggers: z.array(labelSchema).min(1).max(20),
+}).strict().superRefine((playbook, context) => {
+  if (new Set(playbook.decisions.map((item) => item.id)).size !== playbook.decisions.length) {
+    context.addIssue({ code: "custom", path: ["decisions"], message: "Decision identifiers must be unique." });
+  }
+  if (new Set(playbook.approaches.map((item) => item.id)).size !== playbook.approaches.length) {
+    context.addIssue({ code: "custom", path: ["approaches"], message: "Approach identifiers must be unique." });
+  }
+  if (new Set(playbook.checklist.map((item) => item.id)).size !== playbook.checklist.length) {
+    context.addIssue({ code: "custom", path: ["checklist"], message: "Checklist identifiers must be unique." });
+  }
+});
+
 const publisherAuthorityHosts: Readonly<Record<string, readonly string[]>> = {
   "U.S. National Institute of Standards and Technology": ["nist.gov"],
   "International Organization for Standardization and International Electrotechnical Commission": ["iso.org"],
@@ -80,7 +128,11 @@ export const catalogRecordSchema = z.object({
   reviewedBy: labelSchema,
   domains: taxonomyValuesSchema,
   tags: taxonomyValuesSchema,
+  playbook: policyPlaybookSchema.optional(),
 }).strict().superRefine((record, context) => {
+  if (record.playbook !== undefined && record.type !== "policy") {
+    context.addIssue({ code: "custom", path: ["playbook"], message: "Playbooks may be attached only to policy records." });
+  }
   if (new Set(record.industries).size !== record.industries.length) {
     context.addIssue({ code: "custom", path: ["industries"], message: "Industry values must be unique." });
   }
@@ -193,6 +245,7 @@ export type Catalog = z.infer<typeof catalogSchema>;
 export type CatalogRecordType = (typeof catalogRecordTypes)[number];
 export type CatalogRecordStatus = (typeof catalogRecordStatuses)[number];
 export type CatalogIndustry = (typeof catalogIndustries)[number];
+export type PolicyPlaybook = z.infer<typeof policyPlaybookSchema>;
 
 export interface CatalogSearchFilters {
   types?: readonly CatalogRecordType[];
@@ -206,6 +259,74 @@ export interface CatalogSearchFilters {
 export function validateCatalog(input: unknown): Catalog {
   return catalogSchema.parse(input);
 }
+
+const accessControlPolicyPlaybook = {
+  contentAuthority: "eidos_editorial",
+  contentMarker: "editorial",
+  sourceCitation: "Eidos policy playbook editorial guidance",
+  reviewedAt: "2026-09-06",
+  reviewedBy: "Eidos editorial review",
+  outcome: "People receive only the access they need for approved work, and that access is reviewed, changed, and removed predictably.",
+  decisions: [
+    { id: "decision_access_scope", question: "What does this policy govern?", options: ["Workforce access", "Privileged and administrative access", "Third-party access", "Logical and physical access"] },
+    { id: "decision_access_approval", question: "Who must approve access?", options: ["Manager and resource owner", "Preapproved role owner", "Security review for elevated access"] },
+    { id: "decision_access_review", question: "How will access be reviewed?", options: ["Risk-triggered reviews", "Periodic owner certification", "Continuous exception monitoring"] },
+  ],
+  approaches: [
+    { id: "approach_access_lightweight", name: "Centralized starter process", whenToUse: "Smaller environments with a limited application inventory and clear decision makers.", tradeoff: "Simple to operate, but manual approvals and inventories require disciplined follow-through." },
+    { id: "approach_access_role_based", name: "Role-based access model", whenToUse: "Growing organizations with repeatable job functions and enough identity tooling to manage roles.", tradeoff: "Faster standard access, but poorly maintained roles can accumulate excessive permissions." },
+    { id: "approach_access_high_assurance", name: "High-assurance access governance", whenToUse: "Environments with sensitive systems, privileged access, contractual constraints, or higher operational impact.", tradeoff: "Stronger oversight and evidence, with greater tooling and review overhead." },
+  ],
+  checklist: [
+    { id: "checklist_access_owner", phase: "define", title: "Name the policy owner and approvers", guidance: "Assign accountability for policy maintenance, access approval, exceptions, and periodic review." },
+    { id: "checklist_access_scope", phase: "define", title: "Define people, systems, and access types in scope", guidance: "Describe workforce, contractor, service-account, privileged, remote, physical, and third-party access covered by the policy." },
+    { id: "checklist_access_lifecycle", phase: "define", title: "Define the access lifecycle", guidance: "State how access is requested, approved, provisioned, changed, reviewed, suspended, and removed." },
+    { id: "checklist_access_healthcare", phase: "define", title: "Identify health-information workflows", guidance: "If healthcare context is relevant, identify systems and workflows handling health information before tailoring roles, approvals, and review depth. Confirm actual obligations separately.", industries: ["healthcare"] },
+    { id: "checklist_access_financial", phase: "define", title: "Identify financial and payment-data boundaries", guidance: "If financial or payment context is relevant, identify systems handling customer, transaction, or payment data and the third parties that can reach them. Confirm actual obligations separately.", industries: ["financial-services", "payment-processing"] },
+    { id: "checklist_access_government", phase: "define", title: "Identify contract and agency constraints", guidance: "If government or defense context is relevant, identify contract-defined data, system boundaries, and access conditions before selecting policy requirements. Do not infer applicability from this playbook.", industries: ["government", "defense-industrial-base"] },
+    { id: "checklist_access_roles", phase: "implement", title: "Translate approvals into enforceable roles", guidance: "Map approved job responsibilities to least-privilege roles, document elevated access, and avoid shared accounts where individual accountability is needed." },
+    { id: "checklist_access_authentication", phase: "implement", title: "Set authentication and recovery expectations", guidance: "Define where stronger authentication is required and how enrollment, recovery, emergency access, and exceptions are controlled." },
+    { id: "checklist_access_revocation", phase: "operate", title: "Operate timely change and revocation", guidance: "Connect workforce and vendor changes to access removal, and monitor for stale, dormant, or orphaned access." },
+    { id: "checklist_access_reviews", phase: "review", title: "Review access and exceptions", guidance: "Have accountable owners periodically review sensitive access, service accounts, exceptions, and evidence that removals occurred." },
+  ],
+  suggestedOwners: ["Identity and access management", "Information security", "Human resources", "System and data owners"],
+  evidenceExamples: ["Approved access requests", "Role and entitlement inventory", "Periodic access-review records", "Termination and revocation records", "Exception approvals and expiration dates"],
+  reviewTriggers: ["Material system or organizational change", "Identity-platform change", "Security incident involving access", "New contractual or regulatory context", "Repeated access exceptions"],
+};
+
+const incidentResponsePolicyPlaybook = {
+  contentAuthority: "eidos_editorial",
+  contentMarker: "editorial",
+  sourceCitation: "Eidos policy playbook editorial guidance",
+  reviewedAt: "2026-09-06",
+  reviewedBy: "Eidos editorial review",
+  outcome: "Security incidents are identified, escalated, contained, communicated, recovered from, and reviewed through a predictable decision process.",
+  decisions: [
+    { id: "decision_incident_authority", question: "Who may declare and lead an incident?", options: ["Security lead", "Cross-functional incident commander", "Executive-designated authority"] },
+    { id: "decision_incident_severity", question: "How will severity be determined?", options: ["Business impact tiers", "Data and service impact", "Combined technical, legal, and operational criteria"] },
+    { id: "decision_incident_communications", question: "Who controls communications?", options: ["Incident commander", "Legal and communications leads", "Predefined role-based approval matrix"] },
+  ],
+  approaches: [
+    { id: "approach_incident_lightweight", name: "Named-response team", whenToUse: "Smaller organizations with a limited environment and a few people covering multiple response roles.", tradeoff: "Easy to understand, but depends heavily on availability and clearly named alternates." },
+    { id: "approach_incident_role_based", name: "Role-based incident command", whenToUse: "Organizations coordinating security, IT, legal, communications, privacy, and business operations.", tradeoff: "Improves coordination, but requires exercises and maintained contact paths." },
+    { id: "approach_incident_high_assurance", name: "High-assurance response program", whenToUse: "Organizations with sensitive operations, complex dependencies, contractual notification paths, or significant service impact.", tradeoff: "Produces stronger coordination and evidence, with higher exercise and maintenance cost." },
+  ],
+  checklist: [
+    { id: "checklist_incident_roles", phase: "define", title: "Assign response roles and alternates", guidance: "Name incident leadership, technical, legal, privacy, communications, business, and executive decision roles appropriate to the organization." },
+    { id: "checklist_incident_severity", phase: "define", title: "Define severity and escalation criteria", guidance: "Describe observable conditions that change priority, leadership, communication, evidence preservation, or outside assistance." },
+    { id: "checklist_incident_dependencies", phase: "define", title: "Identify critical contacts and dependencies", guidance: "Maintain reachable contacts for service providers, insurers, counsel, responders, law enforcement, and key business owners where relevant." },
+    { id: "checklist_incident_healthcare", phase: "define", title: "Prepare health-information decision paths", guidance: "If healthcare context is relevant, identify who evaluates impacts to health information, care delivery, privacy, and notification duties. Confirm actual obligations with qualified stakeholders.", industries: ["healthcare"] },
+    { id: "checklist_incident_financial", phase: "define", title: "Prepare financial-service coordination paths", guidance: "If financial or payment context is relevant, identify decision paths for transaction systems, fraud teams, payment partners, customer impact, and notification review. Confirm actual obligations separately.", industries: ["financial-services", "payment-processing"] },
+    { id: "checklist_incident_government", phase: "define", title: "Prepare government and contractual reporting paths", guidance: "If government or defense context is relevant, identify contract, agency, and data-handling contacts before an incident. Do not infer reporting obligations from this playbook.", industries: ["government", "defense-industrial-base"] },
+    { id: "checklist_incident_workflows", phase: "implement", title: "Document response and communication workflows", guidance: "Create usable steps for intake, triage, containment, evidence handling, recovery decisions, internal updates, and approved external communications." },
+    { id: "checklist_incident_tools", phase: "implement", title: "Prepare tools and protected records", guidance: "Ensure responders can securely communicate, preserve timelines and evidence, reach backups, and work when primary systems are unavailable." },
+    { id: "checklist_incident_exercise", phase: "operate", title: "Exercise realistic scenarios", guidance: "Test decision authority, handoffs, communications, technical actions, and third-party coordination; assign owners and dates to improvements." },
+    { id: "checklist_incident_review", phase: "review", title: "Review incidents and corrective actions", guidance: "Document lessons, control gaps, policy changes, responsible owners, and follow-through without turning the playbook itself into a readiness score." },
+  ],
+  suggestedOwners: ["Information security", "IT operations", "Legal and privacy", "Communications", "Business continuity and executive leadership"],
+  evidenceExamples: ["Incident timeline and decision log", "Escalation and communication records", "Preserved technical evidence", "Exercise reports", "Corrective-action ownership records"],
+  reviewTriggers: ["Material incident or exercise", "Major technology or supplier change", "New business or data-processing activity", "Contact or leadership change", "Repeated response delay or coordination failure"],
+};
 
 const rawSampleCatalog = {
   records: [
@@ -272,6 +393,7 @@ const rawSampleCatalog = {
       issuer: "Eidos sample library", jurisdictions: ["organization-specific"], industries: ["cross-industry"],
       applicability: "Organizations tailoring a policy baseline to their risk, legal, contractual, and technical context.", version: "sample 1.0", status: "current",
       domains: ["access control", "identity management", "governance"], tags: ["least privilege", "authentication", "access review"],
+      playbook: accessControlPolicyPlaybook,
     },
     {
       id: "policy_incident_response", slug: "incident-response-policy", name: "Incident Response Policy", acronym: "IR Policy", type: "policy",
@@ -280,6 +402,7 @@ const rawSampleCatalog = {
       issuer: "Eidos sample library", jurisdictions: ["organization-specific"], industries: ["cross-industry"],
       applicability: "Organizations defining an incident-response governance baseline.", version: "sample 1.0", status: "current",
       domains: ["incident response", "governance", "resilience"], tags: ["escalation", "communications", "lessons learned"],
+      playbook: incidentResponsePolicyPlaybook,
     },
     {
       id: "control_multi_factor_authentication", slug: "multi-factor-authentication-control", name: "Multi-factor Authentication Control", acronym: "MFA", type: "control",

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { catalogRecords } from "../../src/domain/catalog.js";
 import {
+  buildPolicyPlaybookView,
   buildCatalogFacets,
   filterCatalog,
   formatCatalogType,
   formatRelationshipAuthority,
+  getAdjacentRecordDetailSection,
+  getDialogFocusEdge,
   getIndustryRelevance,
   getRecordDialogFocusAction,
+  getRecordDetailSections,
   toggleComparison,
   type CatalogViewRecord,
 } from "../../src/web/catalog-view-model.js";
@@ -96,6 +101,14 @@ describe("catalog view model", () => {
     expect(getRecordDialogFocusAction(false, false)).toBeNull();
   });
 
+  it("keeps focus inside a dialog when the focused heading is not in the tab order", () => {
+    expect(getDialogFocusEdge(-1, 4, true)).toBe("last");
+    expect(getDialogFocusEdge(-1, 4, false)).toBe("first");
+    expect(getDialogFocusEdge(0, 4, true)).toBe("last");
+    expect(getDialogFocusEdge(3, 4, false)).toBe("first");
+    expect(getDialogFocusEdge(1, 4, false)).toBeNull();
+  });
+
   it("filters selected industries with OR semantics and explains direct versus cross-industry matches", () => {
     const filtered = filterCatalog(records, {
       query: "", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(["financial-services", "government"]),
@@ -113,4 +126,39 @@ describe("catalog view model", () => {
     expect(formatRelationshipAuthority("eidos_curated")).toBe("Eidos-curated context");
     expect(formatRelationshipAuthority("unverified")).toBe("Unverified candidate — not established");
   });
+
+  it("tailors policy playbooks to selected industries without storing assessment state", () => {
+    const policy = catalogRecords.find((item) => item.slug === "access-control-policy")!;
+    const general = buildPolicyPlaybookView(policy, new Set());
+    const healthcare = buildPolicyPlaybookView(policy, new Set(["healthcare"]));
+    const regulated = buildPolicyPlaybookView(policy, new Set(["healthcare", "government"]));
+    const unsupportedContext = buildPolicyPlaybookView(policy, new Set(["technology-saas"]));
+
+    expect(general?.contextLabel).toBe("General starter guidance");
+    expect(general?.checklist.some((item) => item.id === "checklist_access_healthcare")).toBe(false);
+    expect(healthcare?.contextLabel).toBe("Tailored for Healthcare");
+    expect(healthcare?.checklist.some((item) => item.id === "checklist_access_healthcare")).toBe(true);
+    expect(healthcare?.checklist.some((item) => item.id === "checklist_access_financial")).toBe(false);
+    expect(regulated?.checklist.some((item) => item.id === "checklist_access_government")).toBe(true);
+    expect(unsupportedContext?.contextLabel).toBe("General starter guidance");
+    expect(unsupportedContext?.checklist).toEqual(general?.checklist);
+    expect(Object.hasOwn(healthcare?.checklist[0] ?? {}, "completed")).toBe(false);
+    expect(buildPolicyPlaybookView(catalogRecords.find((item) => item.type !== "policy")!, new Set())).toBeNull();
+  });
+
+  it("keeps dense record content in focused sections and exposes playbooks only when available", () => {
+    const policy = catalogRecords.find((item) => item.slug === "access-control-policy")!;
+    const framework = catalogRecords.find((item) => item.type === "framework")!;
+
+    expect(getRecordDetailSections(policy).map((section) => section.id)).toEqual([
+      "overview", "playbook", "related", "source",
+    ]);
+    expect(getRecordDetailSections(framework).map((section) => section.id)).toEqual([
+      "overview", "related", "source",
+    ]);
+    expect(getAdjacentRecordDetailSection("overview", "previous", policy)).toBe("source");
+    expect(getAdjacentRecordDetailSection("source", "next", policy)).toBe("overview");
+    expect(getAdjacentRecordDetailSection("playbook", "next", framework)).toBe("overview");
+  });
+
 });
