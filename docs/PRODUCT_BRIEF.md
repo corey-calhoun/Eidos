@@ -32,6 +32,22 @@ Eidos is for people who need to understand or explain cybersecurity governance m
 
 The MVP is not limited to a consultant assessing one client or one application.
 
+## Approved priority industry contexts
+
+The next contextual-discovery phase should prioritize:
+
+- **Defense industrial base / DoD contracting:** CMMC, DFARS, NIST SP 800-171, and related federal contract-security context;
+- **Government:** federal, state, local, and public-sector governance context such as FISMA, NIST SP 800-53, and FedRAMP where relevant;
+- **Healthcare:** HIPAA, HITECH, sector guidance, and healthcare security and privacy context;
+- **Financial services:** banking, credit unions, insurance, investment, and financial regulatory/security context;
+- **Payment processing:** PCI-related obligations and payment-card security context;
+- **Education:** K–12 and higher-education security, privacy, and governance context;
+- **Technology / SaaS, professional services, retail, small business, critical infrastructure, and cross-industry** reference contexts.
+
+Defense/DoD and general government must remain distinct selectable contexts because their contractual, regulatory, and control baselines differ. Financial services and payment processing must likewise remain distinct even when records overlap.
+
+Industry selection is a relevance aid, not a legal applicability determination. Eidos must explain why a record was surfaced and use language such as “commonly relevant” or “potentially applicable” unless an authoritative rule and sufficient user context support a stronger statement.
+
 ## Problem
 
 Cybersecurity governance knowledge is spread across publisher sites, long documents, control catalogs, regulatory text, guidance, and internal notes. Names overlap, versions change, relationships are easy to overstate, and readers often cannot tell whether a mapping is official, curated, or merely suggested.
