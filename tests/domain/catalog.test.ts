@@ -52,10 +52,19 @@ const concept = {
   copyrightTreatment: "eidos_original" as const,
 };
 
+const publisherConcept = {
+  ...concept,
+  officialUrl: "https://example.test/framework/concept",
+  contentAuthority: "publisher" as const,
+  contentMarker: "paraphrase" as const,
+  sourceCitation: "Example Authority official concept page",
+  copyrightTreatment: "metadata_summary_link" as const,
+};
+
 describe("catalog validation", () => {
   it("accepts strict records and authoritative relationships", () => {
     const parsed = validateCatalog({
-      records: [record, concept],
+      records: [record, publisherConcept],
       relationships: [{
         id: "relationship_example",
         source: record.id,
@@ -120,6 +129,27 @@ describe("catalog validation", () => {
         },
       }],
     })).toThrow();
+  });
+
+  it("rejects verified relationships unless both endpoints are publisher records", () => {
+    expect(() => validateCatalog({
+      records: [record, concept],
+      relationships: [{
+        id: "relationship_mixed_authority",
+        source: record.id,
+        target: concept.id,
+        type: "contains",
+        status: "verified",
+        provenance: {
+          authority: "authoritative",
+          sourceUrl: "https://example.test/framework/contents",
+          sourceLabel: "Example Framework contents",
+          rationale: "The publisher identifies the concept as part of the framework.",
+          reviewedAt: "2026-09-06",
+          reviewedBy: "Eidos editorial review",
+        },
+      }],
+    })).toThrow(/publisher-classified endpoints/i);
   });
 
   it("requires explanatory relationships to be explicitly non-authoritative", () => {

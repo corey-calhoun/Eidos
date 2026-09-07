@@ -103,7 +103,8 @@ export const catalogSchema = z.object({
   records: z.array(catalogRecordSchema).min(1).max(5000),
   relationships: z.array(catalogRelationshipSchema).max(20000),
 }).strict().superRefine((value, context) => {
-  const recordIds = new Set(value.records.map((record) => record.id));
+  const recordsById = new Map(value.records.map((record) => [record.id, record]));
+  const recordIds = new Set(recordsById.keys());
   const slugs = new Set(value.records.map((record) => record.slug));
   if (recordIds.size !== value.records.length) {
     context.addIssue({ code: "custom", path: ["records"], message: "Catalog record identifiers must be unique." });
@@ -123,6 +124,17 @@ export const catalogSchema = z.object({
     }
     if (relationship.source === relationship.target) {
       context.addIssue({ code: "custom", path: ["relationships", index], message: "Relationships cannot be self-referential." });
+    }
+    if (relationship.status === "verified") {
+      const source = recordsById.get(relationship.source);
+      const target = recordsById.get(relationship.target);
+      if (source?.contentAuthority !== "publisher" || target?.contentAuthority !== "publisher") {
+        context.addIssue({
+          code: "custom",
+          path: ["relationships", index],
+          message: "Verified relationships require publisher-classified endpoints.",
+        });
+      }
     }
   });
 });
