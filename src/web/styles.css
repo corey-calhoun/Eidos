@@ -130,10 +130,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .empty-state button { padding: 8px 11px; border: 1px solid rgba(113,112,255,.4); border-radius: 6px; background: var(--accent-soft); color: #cecdff; cursor: pointer; }
 
 .comparison-bar { position: fixed; z-index: 8; left: 50%; bottom: 18px; width: min(680px,calc(100% - 32px)); display: flex; align-items: center; gap: 13px; padding: 10px 12px; border: 1px solid rgba(113,112,255,.32); border-radius: 9px; background: rgba(25,26,31,.96); box-shadow: 0 20px 55px #000; transform: translateX(-50%); }
-.comparison-bar > div { flex: 1; min-width: 0; }
-.comparison-bar strong, .comparison-bar span { display: block; }
-.comparison-bar strong { font-size: 11px; }
-.comparison-bar span { margin-top: 2px; overflow: hidden; color: var(--quiet); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.comparison-selection { flex: 1; min-width: 0; }
+.comparison-selection > strong { display: block; font-size: 11px; }
+.comparison-chips { display: flex; gap: 5px; margin-top: 5px; overflow-x: auto; scrollbar-width: thin; }
+.comparison-chips button { flex: none; padding: 4px 7px; border: 1px solid var(--border); border-radius: 99px; background: rgba(255,255,255,.035); color: var(--muted); cursor: pointer; font-size: 9px; white-space: nowrap; }
+.comparison-chips button:hover { border-color: rgba(113,112,255,.4); color: var(--text-secondary); }
+.comparison-chips button span { margin-left: 3px; color: var(--quiet); }
 .comparison-bar > button:not(.text-button) { padding: 8px 11px; border: 0; border-radius: 6px; background: var(--accent); color: white; cursor: pointer; font-size: 10px; }
 .comparison-bar > button:disabled { opacity: .45; }
 .text-button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 10px; }
@@ -142,11 +144,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .detail-dialog { width: min(1120px,100%); height: min(820px,calc(100vh - 48px)); min-height: 0; display: grid; grid-template-rows: auto auto minmax(0,1fr); overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; background: #101114; box-shadow: 0 30px 110px rgba(0,0,0,.65); }
 .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px 24px 18px; }
 .detail-title { min-width: 0; }
+.detail-back { margin: 0 0 11px; padding: 0; border: 0; background: transparent; color: #aaa9ff; cursor: pointer; font-size: 10px; }
+.detail-back:hover { color: #d0cfff; }
 .detail-badges { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .authority-badge { padding: 4px 7px; border: 1px solid var(--border); border-radius: 99px; background: rgba(255,255,255,.025); color: var(--muted); font-size: 9px; }
 .detail-title h2, .comparison-panel h2 { margin: 10px 50px 6px 0; font-size: clamp(24px,3vw,35px); font-weight: 500; line-height: 1.08; letter-spacing: -.045em; }
 .detail-title h2:focus, .comparison-panel h2:focus { outline: none; }
 .detail-title p { max-width: 760px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.result-navigation { max-width: 760px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--border-soft); }
+.result-navigation > span { color: var(--quiet); font-size: 9px; }
+.result-navigation > div { display: flex; gap: 5px; }
+.result-navigation button { min-height: 32px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,.03); color: var(--text-secondary); cursor: pointer; font-size: 9px; }
+.result-navigation button:hover:not(:disabled) { border-color: rgba(113,112,255,.4); background: var(--accent-soft); }
+.result-navigation button:disabled { opacity: .38; cursor: default; }
 .close-button { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,.035); color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; }
 .close-button:hover { background: rgba(255,255,255,.07); color: var(--text); }
 .detail-tabs { display: flex; flex-wrap: wrap; gap: 4px; overflow: visible; padding: 0 24px; border-bottom: 1px solid var(--border); }
@@ -230,6 +240,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .comparison-panel > p { color: var(--muted); font-size: 11px; }
 .comparison-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 20px; }
 .comparison-grid article { padding: 16px; border: 1px solid var(--border-soft); border-radius: 9px; background: rgba(255,255,255,.022); }
+.comparison-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.comparison-card-heading button { padding: 4px 6px; border: 0; background: transparent; color: var(--quiet); cursor: pointer; font-size: 9px; }
+.comparison-card-heading button:hover { color: #d0cfff; }
 .comparison-grid h3 { font-size: 14px; font-weight: 500; }
 .comparison-grid p { min-height: 62px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .comparison-grid dl div { margin: 10px 0; }
@@ -296,7 +309,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .playbook-accordion-grid, .related-grid, .detail-facts { grid-template-columns: 1fr; }
   .detail-facts .wide { grid-column: auto; }
   .comparison-bar { align-items: flex-start; flex-wrap: wrap; }
-  .comparison-bar > div { flex-basis: 100%; }
+  .comparison-selection { flex-basis: 100%; }
+  .result-navigation { align-items: flex-start; flex-direction: column; }
+  .result-navigation button { min-height: 44px; padding: 8px 12px; }
   .comparison-panel { min-height: 100vh; max-height: 100vh; border: 0; border-radius: 0; padding: 26px 16px; }
   .comparison-grid { grid-template-columns: 1fr; }
 }

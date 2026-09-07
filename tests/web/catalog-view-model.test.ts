@@ -6,12 +6,15 @@ import {
   filterCatalog,
   formatCatalogType,
   formatRelationshipAuthority,
+  getAdjacentCatalogResult,
   getCatalogSearchMatch,
   getAdjacentRecordDetailSection,
   getDialogFocusEdge,
   getIndustryRelevance,
   getRecordDialogFocusAction,
   getRecordDetailSections,
+  getRestoredRecordDetailContext,
+  getRestoredRecordHistoryDepth,
   toggleComparison,
   type CatalogViewRecord,
 } from "../../src/web/catalog-view-model.js";
@@ -214,6 +217,32 @@ describe("catalog view model", () => {
     expect(getAdjacentRecordDetailSection("overview", "previous", policy)).toBe("source");
     expect(getAdjacentRecordDetailSection("source", "next", policy)).toBe("overview");
     expect(getAdjacentRecordDetailSection("playbook", "next", framework)).toBe("overview");
+  });
+
+  it("moves to adjacent records within the current filtered order without wrapping", () => {
+    expect(getAdjacentCatalogResult(records, "framework_nist_csf_2", "next")?.id).toBe("regulation_gdpr");
+    expect(getAdjacentCatalogResult(records, "policy_incident_response", "previous")?.id).toBe("regulation_gdpr");
+    expect(getAdjacentCatalogResult(records, "framework_nist_csf_2", "previous")).toBeNull();
+    expect(getAdjacentCatalogResult(records, "policy_record", "next")).toBeNull();
+  });
+
+  it("restores only valid detail sections and bounded scroll positions from browser history", () => {
+    const policy = catalogRecords.find((record) => record.type === "policy" && record.playbook !== undefined)!;
+    const framework = records[0]!;
+
+    expect(getRestoredRecordDetailContext(policy, "playbook", 240)).toEqual({ section: "playbook", scrollTop: 240 });
+    expect(getRestoredRecordDetailContext(framework, "playbook", 240)).toEqual({ section: "overview", scrollTop: 0 });
+    expect(getRestoredRecordDetailContext(framework, "related", -1)).toEqual({ section: "related", scrollTop: 0 });
+    expect(getRestoredRecordDetailContext(framework, "unknown", Number.NaN)).toEqual({ section: "overview", scrollTop: 0 });
+    expect(getRestoredRecordDetailContext(framework, "source", 1_000_001)).toEqual({ section: "source", scrollTop: 0 });
+  });
+
+  it("accepts only application-bounded integral record history depths", () => {
+    expect(getRestoredRecordHistoryDepth(3)).toBe(3);
+    expect(getRestoredRecordHistoryDepth(0)).toBe(0);
+    for (const value of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1_001, "2", null]) {
+      expect(getRestoredRecordHistoryDepth(value)).toBe(0);
+    }
   });
 
 });

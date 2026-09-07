@@ -120,6 +120,48 @@ export function getAdjacentRecordDetailSection(
   return sections[(currentIndex + offset + sections.length) % sections.length]!.id;
 }
 
+export function getAdjacentCatalogResult<T extends CatalogViewRecord>(
+  records: readonly T[],
+  currentId: string,
+  direction: "previous" | "next",
+): T | null {
+  const currentIndex = records.findIndex((record) => record.id === currentId);
+  if (currentIndex < 0) return null;
+  const adjacentIndex = currentIndex + (direction === "next" ? 1 : -1);
+  return records[adjacentIndex] ?? null;
+}
+
+export function getRestoredRecordDetailContext(
+  record: CatalogViewRecord,
+  section: unknown,
+  scrollTop: unknown,
+): { section: RecordDetailSection; scrollTop: number } {
+  const allowedSections = new Set(getRecordDetailSections(record).map((option) => option.id));
+  const restoredSection = typeof section === "string" && allowedSections.has(section as RecordDetailSection)
+    ? section as RecordDetailSection
+    : "overview";
+  const restoredScrollTop = typeof scrollTop === "number"
+    && Number.isFinite(scrollTop)
+    && scrollTop >= 0
+    && scrollTop <= 1_000_000
+    ? scrollTop
+    : 0;
+  return {
+    section: restoredSection,
+    scrollTop: restoredSection === "overview" && section !== "overview" ? 0 : restoredScrollTop,
+  };
+}
+
+export function getRestoredRecordHistoryDepth(value: unknown): number {
+  return typeof value === "number"
+    && Number.isFinite(value)
+    && Number.isInteger(value)
+    && value >= 0
+    && value <= 1_000
+    ? value
+    : 0;
+}
+
 export function formatCatalogType(type: string, plural = false): string {
   const known = TYPE_LABELS[type];
   if (known) return known[plural ? 1 : 0];

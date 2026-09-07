@@ -9,8 +9,8 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 ## Current catalog-first MVP
 
 - Built-in, deterministic curated core with 77 records across 12 publisher-aligned material types.
-- Universal local search across names, acronyms, descriptions, publishers, applicability, domains, and tags.
-- Browse-by-type directories and catalog filters.
+- Universal local search across names, acronyms, aliases, stable IDs, slugs, descriptions, publishers, applicability, domains, and tags, with deterministic relevance ordering and visible match reasons.
+- Browse-by-type directories plus status, topic, and industry filters with contextual counts and independently removable filter chips.
 - Centralized desktop workspace with a compact filter rail, contained result scrolling, and a centered record dialog so the primary journey stays within one viewport.
 - Multi-select industry filtering with distinct Defense/DoD, Government, Healthcare, Financial services, Payment processing, and Education contexts.
 - Per-result explanations distinguish direct industry tags from broadly useful cross-industry references.
@@ -20,8 +20,9 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 - General playbook guidance can be augmented by selected-industry context prompts without asserting legal applicability.
 - Policy source and authority metadata remains available in the dedicated Source & trust tab; a persistent authority badge remains visible across every detail section.
 - Explicit issuer, version/status, jurisdiction, applicability, and official-source metadata where applicable.
-- Related-material navigation that distinguishes official publisher relationships, Eidos-curated context, and unverified candidates.
-- Side-by-side comparison for selected governance references.
+- Previous/Next navigation reports position in the current filtered result set without wrapping.
+- Related-material navigation distinguishes official publisher relationships, Eidos-curated context, and unverified candidates; a visible Back action restores the prior detail tab and scroll context.
+- Side-by-side comparison for selected governance references, with per-item removal from both the selection tray and open comparison.
 - Strict Zod validation that rejects malformed records, duplicate identifiers/slugs, dangling relationships, and unsupported fields.
 - Loopback-only Fastify API with strict query validation and existing defensive Host, Origin, response-header, and body-size controls.
 - No external account, cloud service, telemetry, or AI service is required.
@@ -110,6 +111,14 @@ After building, start the compiled processes separately:
 npm run start:api
 npm run start:web
 ```
+
+Stop both processes with `Ctrl+C` in their respective terminals. Confirm shutdown on Windows/Git Bash with:
+
+```bash
+netstat -ano | grep -E ':(4173|4317)' | grep LISTENING
+```
+
+No output means neither Eidos listener remains active.
 
 Passing these gates does not authorize production deployment.
 

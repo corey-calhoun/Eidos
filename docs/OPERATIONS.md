@@ -1,9 +1,6 @@
-# Eidos MVP Operations
+# Eidos Local Operations
 
-This runbook covers the currently implemented local MVP. It does not describe deployment: Eidos has no production packaging, hosted mode, service manager, or supported remote listener.
-
-> [!NOTE]
-> Startup, loopback, and troubleshooting procedures remain applicable. Assessment routes and assessment-database initialization are disabled in the normal runtime. Any graph-specific UI, sample-assessment, database, or export instructions later in this document apply only to explicit test/developer compatibility mode. The current workflow is catalog search, browse, record detail, relationships, and comparison as documented in `README.md`.
+This runbook covers the active catalog-first, local-only Eidos runtime. It does not authorize or describe production deployment, remote access, LAN exposure, tunneling, or multi-user operation.
 
 ## Runtime topology
 
@@ -14,21 +11,31 @@ This runbook covers the currently implemented local MVP. It does not describe de
 | Compiled API | `npm run start:api` after `npm run build` | `127.0.0.1:4317` |
 | Compiled UI preview | `npm run start:web` after `npm run build` | `127.0.0.1:4173` |
 
-The UI has a fixed API base URL of `http://127.0.0.1:4317`. The compiled API and compiled UI preview remain separate loopback processes.
+The API and web UI are separate loopback-only processes. The built-in catalog works without an external database, account, telemetry service, AI service, or Internet connection.
 
-## Startup
+## Prerequisites
 
-From a clean checkout:
+- Node.js 24 or newer
+- npm
+- A modern browser
+
+Run commands from:
 
 ```bash
 cd "E:/Coding Projects/Eidos"
+```
+
+Install the locked dependency tree:
+
+```bash
 npm ci
 ```
+
+## Development startup
 
 Start the API in terminal 1:
 
 ```bash
-cd "E:/Coding Projects/Eidos"
 npm run dev:api
 ```
 
@@ -41,91 +48,64 @@ Eidos API listening at http://127.0.0.1:4317
 Start the UI in terminal 2:
 
 ```bash
-cd "E:/Coding Projects/Eidos"
 npm run dev:web
 ```
 
-Open <http://127.0.0.1:4173>. The status should read **Live local data**. If it reads **Local sample mode**, the browser is showing bundled fallback data and is not proof that the API or SQLite database is available.
+Open <http://127.0.0.1:4173>.
 
-### Use a database outside the repository
+The first screen should show the Eidos governance reference library with local search, browse/filter controls, and reference cards.
 
-Set `EIDOS_DATABASE_PATH` only for the API process. Prefer an absolute path in a private, access-controlled directory:
+## Compiled local startup
+
+Build and verify before starting compiled processes:
 
 ```bash
-EIDOS_DATABASE_PATH="E:/Private Eidos Data/client.sqlite" npm run dev:api
+npm run accept
 ```
 
-An empty/new database is initialized and seeded with the bundled sample graph. A relative override is resolved from the API process's working directory. The current path resolver uses Windows path semantics, so an absolute Windows path is least ambiguous.
+Then start the compiled API and UI preview in separate terminals:
+
+```bash
+npm run start:api
+```
+
+```bash
+npm run start:web
+```
+
+Open <http://127.0.0.1:4173>.
+
+A successful compiled preview is local release evidence only. It is not a production deployment.
 
 ## Shutdown
 
-1. Stop using the UI and allow any export download to finish.
-2. In the web terminal, press `Ctrl+C`.
-3. In the API terminal, press `Ctrl+C` and wait for the process to exit.
-4. Before backup, restore, move, or deletion, verify that no process is listening on API port 4317:
+1. Stop using the UI.
+2. Press `Ctrl+C` in the web terminal.
+3. Press `Ctrl+C` in the API terminal.
+4. Verify both listeners are closed:
 
 ```bash
-netstat -ano | grep ':4317'
+netstat -ano | grep -E ':(4173|4317)' | grep LISTENING
 ```
 
-No output means no matching socket was reported. If a PID remains, identify and stop that process through Windows Task Manager. Do not copy or replace the database while the API is running.
+No output means neither Eidos listener remains active.
 
-## Data location and lifecycle
+If a listener remains:
 
-Default Windows data files:
+1. Record the PID from the `LISTENING` row.
+2. Confirm its command line belongs to `E:\Coding Projects\Eidos` using Task Manager or Windows process inspection.
+3. Terminate only that confirmed Eidos process.
+4. Run the listener check again.
 
-```text
-%LOCALAPPDATA%\Eidos\eidos.sqlite
-%LOCALAPPDATA%\Eidos\eidos.sqlite-wal   (may exist while open)
-%LOCALAPPDATA%\Eidos\eidos.sqlite-shm   (may exist while open)
-```
+Do not bulk-terminate all `node.exe` processes; other projects may be running.
 
-If `LOCALAPPDATA` is unavailable, Eidos falls back to `<current working directory>/local-data/eidos.sqlite`. The database uses SQLite WAL mode, foreign keys, `synchronous=FULL`, a five-second busy timeout, and schema version 1. Generic database and SQLite sidecars are ignored by Git, but ignore rules are not access controls or encryption.
-
-On first startup against an empty database, Eidos stores the built-in sample graph. There is currently one snapshot slot and no UI/API mutation workflow. Deleting or pointing away from the database causes a new database with the sample graph to be created at the next startup.
-
-## Backup and restore
-
-The only supported database-copy procedure for this MVP is an **offline copy**:
-
-1. Shut down the API and confirm port 4317 is no longer listening.
-2. Copy `eidos.sqlite` and any same-basename `eidos.sqlite-wal` and `eidos.sqlite-shm` files together to a protected backup directory. Copying the whole containing data directory is simplest.
-3. Record the application version/commit alongside the backup.
-4. Protect the backup with OS permissions and disk encryption appropriate for client assessment data.
-
-Restore only while the API is stopped:
-
-1. Preserve the current database directory as a rollback copy.
-2. Replace the database and any sidecars as one set, or point `EIDOS_DATABASE_PATH` at a restored copy.
-3. Start the API and run the health, graph, and snapshot checks below.
-
-There is no restore/import endpoint, migration backup automation, or recovery UI. The repository rejects databases with a newer migration version or a mismatched current migration checksum; retain the exact app version with backups and test restored copies before relying on them.
-
-## Exports
+## Runtime checks
 
 With the API running:
 
 ```bash
-curl -fsS http://127.0.0.1:4317/api/exports/snapshot -o eidos-snapshot.json
-curl -fsS http://127.0.0.1:4317/api/exports/summary -o eidos-summary.md
-```
-
-- `eidos-snapshot.json` contains schema version `1.0.0`, generation time, a canonicalized graph, and a SHA-256 digest covering the canonical export envelope except the digest field itself.
-- `eidos-summary.md` contains counts, priority observations, assurance states, and provenance coverage; it explicitly does not claim certification, audit completion, or compliance.
-- The UI's **Export view** button downloads `eidos-current-view.json`, which contains only the currently visible/filter-matched nodes and edges.
-
-Treat all exports as sensitive. Choose a protected destination and do not commit exports. API and UI exports are not SQLite backups, and there is no implemented import path for them.
-
-## Verification
-
-### Runtime checks
-
-Run after the API starts:
-
-```bash
 curl -fsS http://127.0.0.1:4317/health
-curl -fsS http://127.0.0.1:4317/api/graph -o eidos-graph-check.json
-curl -fsS http://127.0.0.1:4317/api/exports/snapshot -o eidos-snapshot-check.json
+curl -fsS http://127.0.0.1:4317/api/catalog
 ```
 
 Expected health response:
@@ -134,39 +114,81 @@ Expected health response:
 {"status":"ok","service":"eidos-api"}
 ```
 
-To confirm the API rejects a hostile host header:
+Representative catalog checks:
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' -H 'Host: attacker.example' http://127.0.0.1:4317/api/graph
+curl -fsS "http://127.0.0.1:4317/api/catalog?q=NIST"
+curl -fsS "http://127.0.0.1:4317/api/catalog?type=framework&status=current"
+curl -fsS "http://127.0.0.1:4317/api/catalog?industry=defense-industrial-base"
+curl -fsS http://127.0.0.1:4317/api/catalog/nist-csf-2-0
+```
+
+Use slugs returned by `/api/catalog` rather than inventing record identifiers.
+
+### Defensive boundary checks
+
+Host rejection:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'Host: attacker.example' http://127.0.0.1:4317/api/catalog
 ```
 
 Expected status: `421`.
 
-To confirm the API rejects a supplied hostile origin:
+Origin rejection:
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' -H 'Origin: https://attacker.example' http://127.0.0.1:4317/api/graph
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'Origin: https://attacker.example' http://127.0.0.1:4317/api/catalog
 ```
 
 Expected status: `403`.
 
-### Repository checks
+Unknown query fields and unsupported filter values must return `400`. Unknown record slugs must return `404`.
+
+## Repository acceptance
+
+Run the complete gate:
 
 ```bash
 npm run accept
 ```
 
-This runs both type checks, all Vitest tests, both production builds, and the production dependency audit in release order.
+This executes, in order:
+
+1. Browser and server TypeScript checks.
+2. All Vitest tests.
+3. Production web and server builds.
+4. Production dependency audit at high severity.
+
+Individual commands:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run audit
+```
+
+After browser-facing changes, verify the exact freshly built asset in a production preview. A healthy response from a stale Vite process is not current-tree evidence.
+
+## Normal catalog data behavior
+
+- The active catalog is deterministic, validated, and built into the application.
+- Normal catalog startup does not initialize SQLite.
+- Search, filtering, comparison selection, open-record history, detail tabs, and scroll context are local UI state.
+- Eidos does not store organizational completion, evidence, owners, due dates, findings, gaps, readiness, maturity, or compliance status.
+- Publisher/source/version/provenance fields are reference metadata and trust anchors; do not replace them with inferred claims.
+
+## Historical assessment compatibility
+
+The preserved assessment-graph code and regression coverage are historical implementation ancestry, not the active product workflow.
+
+- Normal `npm run start:api` leaves assessment, assurance-export, and analysis-proposal routes disabled.
+- Historical tests may opt in with `buildServer({ enableLegacyAssessmentApi: true })`.
+- Do not create, copy, restore, or operate an assessment SQLite database as part of normal catalog startup.
+- Where older architecture, data-model, API, visual, or test documents conflict with the catalog-first product, `README.md`, `docs/PRODUCT_BRIEF.md`, `docs/ACCEPTANCE.md`, and the current implementation take precedence.
 
 ## Troubleshooting
-
-### UI says “Local sample mode”
-
-- Confirm terminal 1 printed the API listening message.
-- Run `curl -fsS http://127.0.0.1:4317/health`.
-- Use exactly `http://127.0.0.1:4173` or `http://localhost:4173` for the UI. Other origins are rejected.
-- Restart the API, then use **Retry API** in the UI.
-- Remember that the fallback graph is bundled in the browser; seeing a graph alone does not prove persistence is working.
 
 ### Port 4173 or 4317 is already in use
 
@@ -174,44 +196,40 @@ This runs both type checks, all Vitest tests, both production builds, and the pr
 netstat -ano | grep -E ':(4173|4317)'
 ```
 
-Stop the conflicting process through Task Manager, then restart Eidos. Both ports are fixed in the current source; changing only a CLI port will break the host/origin allowlists or the UI's compiled API URL.
+Identify the `LISTENING` PID and confirm ownership before stopping it. Both ports are fixed in the current local configuration; changing only a CLI port can break the API URL or Host/Origin restrictions.
 
-### API starts with unexpected data or creates a database in the wrong place
+### The UI opens but data is unexpected
 
-- Check the directory from which the API command was launched.
-- Check whether `EIDOS_DATABASE_PATH` is set: `printf '%s\n' "$EIDOS_DATABASE_PATH"`.
-- Use an absolute Windows path for the override.
-- Do not delete an unexpected database until the API is stopped and the directory has been backed up.
+- Confirm the browser URL is exactly `http://127.0.0.1:4173` or `http://localhost:4173`.
+- Confirm the API health endpoint responds on 4317 when testing API-backed behavior.
+- Run `npm run build` and confirm the preview HTML references the newly generated hashed JavaScript asset.
+- Hard-refresh the browser after rebuilding.
+- Run `npm run accept` before treating the current tree as verified.
 
-### Database error, corruption concern, or failed restore
+### Build succeeds but no page appears on port 4317
 
-- Stop the API immediately and preserve the database plus `-wal`/`-shm` sidecars as a set.
-- Do not repeatedly start Eidos against the only copy.
-- Restore to a separate path with `EIDOS_DATABASE_PATH`, then verify `/health`, `/api/graph`, and the snapshot export.
-- The current MVP has no repair, integrity-check, or automated rollback command.
+This is expected. Port 4317 serves the API, not the web application. Start `npm run start:web` separately and open port 4173.
 
-### Build succeeded but there is no web application at port 4317
+### A catalog request returns 400
 
-This is expected. The API listens on 4317. After building, run `npm run start:web` separately and open `http://127.0.0.1:4173`.
+The API validates query names and values strictly. Check `q`, `type`, `status`, and comma-separated `industry` parameters. Unsupported, duplicate, empty, or unknown values fail closed.
 
-### Proposal endpoint does not call a model
+### A record link returns 404
 
-This is expected in the MVP. `POST /api/analysis/proposals` validates a question and returns fixed proposed text marked `ai_proposed`; it has no model-provider integration and cannot modify the graph.
+Use the exact public slug returned by `/api/catalog`. Unknown or obsolete slugs intentionally produce a safe not-found response.
 
 ## Not production-safe
 
-Do **not** deploy Eidos, expose it to a LAN, proxy it, tunnel it, or use the current runtime as a multi-user service.
+Do not deploy Eidos, expose it to a LAN, proxy it, tunnel it, or use it as a multi-user service.
 
-The implemented MVP lacks production-critical controls and operations, including:
+The current local MVP lacks production-critical controls and operations including:
 
-- user authentication and authorization;
-- tenant/workspace isolation and multi-user concurrency controls;
-- an Eidos-managed encryption-at-rest layer or secrets management;
-- production static-UI serving/packaging, TLS, configurable network topology, and hardened deployment configuration;
-- supported forward migrations across application versions, automated verified backups, restore/import tooling, and rollback automation;
-- monitoring, structured operational logging, rate limiting, service supervision, and incident-response integration;
-- evidence-file ingestion/storage and integrity workflows;
-- complete implementation of the documented `/api/v1` contract and its provenance/audit mutation model;
-- production security review, SBOM/release evidence, and full acceptance/runtime/browser testing.
+- authentication and authorization;
+- tenant/workspace isolation;
+- hosted secrets management and encryption architecture;
+- TLS and hardened deployment configuration;
+- production service supervision, monitoring, alerting, and rate limiting;
+- collaborative persistence, migrations, backups, and restore tooling;
+- production security review and deployment approval.
 
-Loopback binding lowers exposure but is not an authentication mechanism. Unsafe browser-facing methods require an approved local Origin, but any process running as the user can still attempt safe requests. Use only non-production sample/test data unless a responsible operator has separately accepted the local data-handling risks.
+Loopback binding reduces exposure but is not authentication. Any process running as the local user can attempt loopback requests. Use Eidos only within its approved local-first boundary.

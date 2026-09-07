@@ -14,12 +14,15 @@ import {
   formatCatalogType,
   formatIndustry,
   formatRelationshipAuthority,
+  getAdjacentCatalogResult,
   getCatalogSearchMatch,
   getAdjacentRecordDetailSection,
   getDialogFocusEdge,
   getIndustryRelevance,
   getRecordDialogFocusAction,
   getRecordDetailSections,
+  getRestoredRecordDetailContext,
+  getRestoredRecordHistoryDepth,
   humanize,
   isComparable,
   toggleComparison,
@@ -74,6 +77,7 @@ function App() {
   const searchRef = useRef<HTMLInputElement>(null);
   const resultsPaneRef = useRef<HTMLElement>(null);
   const detailBodyRef = useRef<HTMLDivElement>(null);
+  const pendingDetailScrollRef = useRef<number | null>(null);
   const recordOpenerRef = useRef<HTMLElement | null>(null);
   const comparisonOpenerRef = useRef<HTMLElement | null>(null);
   const recordDepthRef = useRef(0);
@@ -118,7 +122,10 @@ function App() {
   }, [query, activeType, activeStatuses, activeDomains, activeIndustries]);
 
   useEffect(() => {
-    if (selectedRecord) detailBodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    if (!selectedRecord) return;
+    const scrollTop = pendingDetailScrollRef.current ?? 0;
+    pendingDetailScrollRef.current = null;
+    detailBodyRef.current?.scrollTo({ top: scrollTop, behavior: "auto" });
   }, [selectedRecord?.id]);
 
   useEffect(() => {
@@ -132,9 +139,15 @@ function App() {
     const onPopState = (event: PopStateEvent) => {
       const slug = new URLSearchParams(window.location.search).get("record");
       const record = slug ? catalogRecords.find((item) => item.slug === slug) ?? null : null;
-      recordDepthRef.current = typeof event.state?.eidosRecordDepth === "number" ? event.state.eidosRecordDepth : 0;
+      recordDepthRef.current = getRestoredRecordHistoryDepth(event.state?.eidosRecordDepth);
+      const context = record
+        ? getRestoredRecordDetailContext(record, event.state?.eidosRecordSection, event.state?.eidosRecordScrollTop)
+        : { section: "overview" as const, scrollTop: 0 };
+      pendingDetailScrollRef.current = context.scrollTop;
+      setDetailSection(context.section);
       setSelectedRecord(record);
       setInvalidRecordSlug(slug && !record ? slug : null);
+      if (record) window.setTimeout(() => detailHeadingRef.current?.focus(), 0);
       if (!slug) restoreRecordFocus();
     };
     window.addEventListener("popstate", onPopState);
@@ -156,8 +169,21 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [comparisonOpen, invalidRecordSlug, selectedRecord]);
 
+  function preserveCurrentRecordContext() {
+    if (!selectedRecord) return;
+    window.history.replaceState({
+      ...window.history.state,
+      eidosRecordDepth: recordDepthRef.current,
+      eidosRecordSection: detailSection,
+      eidosRecordScrollTop: detailBodyRef.current?.scrollTop ?? 0,
+    }, "", window.location.href);
+  }
+
   function openRecord(record: CatalogRecord, restoreFocusTo?: HTMLElement | null) {
     if (!selectedRecord && !invalidRecordSlug) recordOpenerRef.current = restoreFocusTo ?? document.activeElement as HTMLElement | null;
+    const previousRecordSlug = selectedRecord?.slug ?? null;
+    preserveCurrentRecordContext();
+    pendingDetailScrollRef.current = 0;
     setSelectedRecord(record);
     setDetailSection("overview");
     setInvalidRecordSlug(null);
@@ -165,8 +191,19 @@ function App() {
     url.searchParams.set("record", record.slug);
     if (url.href !== window.location.href) {
       recordDepthRef.current += 1;
-      window.history.pushState({ eidosRecordDepth: recordDepthRef.current }, "", url);
+      window.history.pushState({
+        eidosRecordDepth: recordDepthRef.current,
+        eidosPreviousRecordSlug: previousRecordSlug,
+        eidosRecordSection: "overview",
+        eidosRecordScrollTop: 0,
+      }, "", url);
     }
+    if (previousRecordSlug) window.setTimeout(() => detailHeadingRef.current?.focus(), 0);
+  }
+
+  function returnToPreviousRecord() {
+    preserveCurrentRecordContext();
+    window.history.back();
   }
 
   function closeRecord() {
@@ -248,9 +285,38 @@ function App() {
     setNotice(result.reason);
   }
 
+  function removeComparison(record: CatalogRecord) {
+    setComparisonIds((current) => {
+      const next = current.filter((id) => id !== record.id);
+      if (next.length < 2 && comparisonOpen) {
+        setComparisonOpen(false);
+        window.setTimeout(() => (
+          document.querySelector<HTMLElement>(".comparison-chips button, .comparison-bar .text-button")
+          ?? comparisonOpenerRef.current
+        )?.focus(), 0);
+      }
+      return next;
+    });
+  }
+
   function selectRecordSection(section: RecordDetailSection, focus = false) {
     setDetailSection(section);
+    if (selectedRecord) {
+      window.history.replaceState({
+        ...window.history.state,
+        eidosRecordDepth: recordDepthRef.current,
+        eidosRecordSection: section,
+        eidosRecordScrollTop: 0,
+      }, "", window.location.href);
+    }
+    detailBodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
     if (focus) window.setTimeout(() => document.querySelector<HTMLElement>(`[data-record-section="${section}"]`)?.focus(), 0);
+  }
+
+  function moveToAdjacentResult(direction: "previous" | "next") {
+    if (!selectedRecord) return;
+    const adjacent = getAdjacentCatalogResult(records, selectedRecord.id, direction);
+    if (adjacent) openRecord(adjacent);
   }
 
   function moveRecordSection(event: ReactKeyboardEvent<HTMLElement>) {
@@ -269,6 +335,15 @@ function App() {
   const related = selectedRecord ? getRelatedRecords(selectedRecord.id) : [];
   const playbook = selectedRecord ? buildPolicyPlaybookView(selectedRecord, activeIndustries) : null;
   const detailSections = selectedRecord ? getRecordDetailSections(selectedRecord) : [];
+  const selectedResultIndex = selectedRecord ? records.findIndex((record) => record.id === selectedRecord.id) : -1;
+  const previousResult = selectedRecord ? getAdjacentCatalogResult(records, selectedRecord.id, "previous") : null;
+  const nextResult = selectedRecord ? getAdjacentCatalogResult(records, selectedRecord.id, "next") : null;
+  const previousRecordSlug = recordDepthRef.current > 0 && typeof window.history.state?.eidosPreviousRecordSlug === "string"
+    ? window.history.state.eidosPreviousRecordSlug
+    : null;
+  const previousRecord = previousRecordSlug
+    ? catalogRecords.find((record) => record.slug === previousRecordSlug) ?? null
+    : null;
 
   return (
     <div className="app-shell">
@@ -380,8 +455,8 @@ function App() {
         </div>
       </main>
       {comparisonIds.length > 0 && (
-        <div className="comparison-bar" role="status">
-          <div><strong>{comparisonIds.length} selected</strong><span>{comparedRecords.map((record) => record.acronym ?? record.name).join(" · ")}</span></div>
+        <div className="comparison-bar" aria-label="Selected comparisons">
+          <div className="comparison-selection"><strong aria-live="polite">{comparisonIds.length} selected</strong><div className="comparison-chips">{comparedRecords.map((record) => <button key={record.id} aria-label={`Remove ${record.name} from comparison`} onClick={() => removeComparison(record)}>{record.acronym ?? record.name} <span aria-hidden="true">×</span></button>)}</div></div>
           <button disabled={comparisonIds.length < 2} onClick={(event) => openComparison(event.currentTarget)}>Compare references</button>
           <button className="text-button" onClick={() => setComparisonIds([])}>Clear</button>
         </div>
@@ -392,12 +467,20 @@ function App() {
           <article className="detail-dialog" aria-modal="true" role="dialog" aria-labelledby="record-title" onKeyDown={trapDialogFocus}>
             <header className="detail-header">
               <div className="detail-title">
+                {previousRecord && <button className="detail-back" onClick={returnToPreviousRecord}>← Back to {previousRecord.acronym ?? previousRecord.name}</button>}
                 <div className="detail-badges">
                   <span className={`type-badge type-${selectedRecord.type}`}>{formatCatalogType(selectedRecord.type)}</span>
                   <span className="authority-badge">{selectedRecord.contentAuthority === "publisher" ? "Publisher material · Eidos paraphrase" : "Eidos editorial guidance"}</span>
                 </div>
                 <h2 id="record-title" ref={detailHeadingRef} tabIndex={-1}>{selectedRecord.name}</h2>
                 <p>{selectedRecord.summary}</p>
+                {selectedResultIndex >= 0 && <div className="result-navigation" aria-label="Navigate current results">
+                  <span>{selectedResultIndex + 1} of {records.length} in current results</span>
+                  <div>
+                    <button disabled={!previousResult} onClick={() => moveToAdjacentResult("previous")} aria-label={previousResult ? `Previous result: ${previousResult.name}` : "No previous result"}>← Previous</button>
+                    <button disabled={!nextResult} onClick={() => moveToAdjacentResult("next")} aria-label={nextResult ? `Next result: ${nextResult.name}` : "No next result"}>Next →</button>
+                  </div>
+                </div>}
               </div>
               <button className="close-button" onClick={closeRecord} aria-label="Close reference">×</button>
             </header>
@@ -505,7 +588,7 @@ function App() {
             <span className="section-kicker">Side-by-side reference</span><h2 id="compare-title" ref={comparisonHeadingRef} tabIndex={-1}>Compare governance materials</h2>
             <p>Comparison explains differences; it does not imply equivalence, superiority, or compliance.</p>
             <div className="comparison-grid">
-              {comparison.records.map((record) => <article key={record.id}><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><h3>{record.name}</h3><p>{record.summary}</p><dl><div><dt>Publisher</dt><dd>{record.issuer}</dd></div><div><dt>Version</dt><dd>{record.version ?? "Not specified"}</dd></div><div><dt>Status</dt><dd>{humanize(record.status)}</dd></div><div><dt>Jurisdiction</dt><dd>{record.jurisdictions.join(", ")}</dd></div><div><dt>Applicability</dt><dd>{record.applicability}</dd></div><div><dt>Authoritative source</dt><dd>{record.officialUrl ? <a href={record.officialUrl} target="_blank" rel="noreferrer">Official publisher source <span aria-hidden="true">↗</span></a> : "No official publisher link recorded"}</dd></div></dl><button className="open-record" onClick={() => openComparedRecord(record)}>Open full reference</button></article>)}
+              {comparison.records.map((record) => <article key={record.id}><div className="comparison-card-heading"><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><button aria-label={`Remove ${record.name} from comparison`} onClick={() => removeComparison(record)}>Remove</button></div><h3>{record.name}</h3><p>{record.summary}</p><dl><div><dt>Publisher</dt><dd>{record.issuer}</dd></div><div><dt>Version</dt><dd>{record.version ?? "Not specified"}</dd></div><div><dt>Status</dt><dd>{humanize(record.status)}</dd></div><div><dt>Jurisdiction</dt><dd>{record.jurisdictions.join(", ")}</dd></div><div><dt>Applicability</dt><dd>{record.applicability}</dd></div><div><dt>Authoritative source</dt><dd>{record.officialUrl ? <a href={record.officialUrl} target="_blank" rel="noreferrer">Official publisher source <span aria-hidden="true">↗</span></a> : "No official publisher link recorded"}</dd></div></dl><button className="open-record" onClick={() => openComparedRecord(record)}>Open full reference</button></article>)}
             </div>
           </section>
         </div>

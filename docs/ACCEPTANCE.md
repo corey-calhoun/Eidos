@@ -116,6 +116,7 @@ Pass when automated tests show that:
 - source, authority, and provenance remain available as a secondary trust section rather than displacing the policy playbook;
 - unknown or not-applicable metadata is labeled plainly rather than omitted in a misleading way;
 - external links are visibly identified and use safe browser behavior;
+- the detail view reports the record's position in the current filtered result set and provides non-wrapping Previous/Next navigation when adjacent results exist;
 - a missing or unknown record ID produces a safe not-found state with a route back to the library.
 
 ### AC-06 — Related materials
@@ -124,7 +125,7 @@ Pass when automated tests show that:
 
 - a detail view lists each directly related record with relationship type, reason, authority label, supporting source or editorial provenance, and review date;
 - following a related item opens the correct detail view;
-- back navigation returns to the prior record and preserves the user's search or browse context;
+- a visible back action returns to the prior record and preserves the user's search or browse context, selected detail section, and bounded detail-scroll position;
 - official, Eidos-curated, and unverified relationships have distinct text labels and are not distinguished by color alone;
 - records remain usable when they have no relationships.
 
@@ -137,7 +138,8 @@ Pass when automated tests show that:
 - missing values are shown as unknown or not applicable rather than treated as equal;
 - the comparison does not state or imply equivalence, compliance, superiority, or an official mapping unless an authoritative source explicitly supports that statement;
 - each compared item links back to its full detail view;
-- removing an item updates the comparison without changing catalog data.
+- each selected item can be removed from the comparison tray or open comparison without changing catalog data;
+- removing items below the two-record comparison minimum closes the comparison safely and returns focus to a usable comparison control.
 
 ### AC-08 — Catalog persistence and deterministic loading
 
