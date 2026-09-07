@@ -4,12 +4,15 @@ import {
   catalogSummary,
   compareRecords,
   getRelatedRecords,
+  type CatalogIndustry,
   type CatalogRecord,
 } from "../domain/catalog.js";
 import {
   buildCatalogFacets,
   filterCatalog,
   formatCatalogType,
+  formatIndustry,
+  getIndustryRelevance,
   getRecordDialogFocusAction,
   humanize,
   isComparable,
@@ -40,6 +43,7 @@ function trapDialogFocus(event: ReactKeyboardEvent<HTMLElement>) {
 function App() {
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [activeIndustries, setActiveIndustries] = useState<Set<CatalogIndustry>>(new Set());
   const [selectedRecord, setSelectedRecord] = useState<CatalogRecord | null>(initialRecord);
   const [invalidRecordSlug, setInvalidRecordSlug] = useState<string | null>(initialSlug && !initialRecord ? initialSlug : null);
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
@@ -59,7 +63,8 @@ function App() {
     types: activeType ? new Set([activeType]) : new Set(),
     statuses: new Set(),
     domains: new Set(),
-  }), [query, activeType]);
+    industries: activeIndustries,
+  }), [query, activeType, activeIndustries]);
 
   const comparedRecords = comparisonIds
     .map((id) => catalogRecords.find((record) => record.id === id))
@@ -148,6 +153,21 @@ function App() {
     document.getElementById("catalog-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function toggleIndustry(industry: CatalogIndustry) {
+    setActiveIndustries((current) => {
+      const next = new Set(current);
+      if (next.has(industry)) next.delete(industry);
+      else next.add(industry);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    setQuery("");
+    setActiveType(null);
+    setActiveIndustries(new Set());
+  }
+
   function changeComparison(record: CatalogRecord) {
     const result = toggleComparison(comparisonIds, record);
     setComparisonIds(result.ids);
@@ -219,32 +239,57 @@ function App() {
           </div>
         </section>
 
+        <section className="industry-section" aria-labelledby="industry-heading">
+          <div className="industry-panel">
+            <div className="industry-copy">
+              <span className="section-kicker">Choose your context</span>
+              <h2 id="industry-heading">Narrow the library by industry</h2>
+              <p>Select one or more sectors. Results include direct industry matches and broadly useful cross-industry references.</p>
+              <small>Industry relevance is orientation, not a legal-applicability or compliance determination.</small>
+            </div>
+            <div className="industry-options" role="group" aria-label="Industry filters">
+              {facets.industries.map((facet) => {
+                const industry = facet.value as CatalogIndustry;
+                const selected = activeIndustries.has(industry);
+                return (
+                  <button key={industry} aria-pressed={selected} className={selected ? "active" : ""} onClick={() => toggleIndustry(industry)}>
+                    <span>{facet.label}</span><b>{facet.directCount === 0 ? "Broad only" : `${facet.directCount} direct`}</b>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         <section className="catalog-section" id="catalog-results" aria-labelledby="catalog-heading">
           <div className="section-heading catalog-heading">
             <div>
               <span className="section-kicker">Reference library</span>
               <h2 id="catalog-heading">{activeType ? formatCatalogType(activeType, true) : query ? "Search results" : "Explore the catalog"}</h2>
             </div>
-            <div className="catalog-count"><strong>{records.length}</strong> shown · {summary.totalRecords} total</div>
+            <div className="catalog-count" aria-live="polite"><strong>{records.length}</strong> shown · {summary.totalRecords} total</div>
           </div>
-          {(query || activeType) && (
+          {(query || activeType || activeIndustries.size > 0) && (
             <div className="active-filters" aria-label="Active filters">
               {query && <button onClick={() => setQuery("")}>Search: “{query}” <span>×</span></button>}
               {activeType && <button onClick={() => setActiveType(null)}>{formatCatalogType(activeType)} <span>×</span></button>}
-              <button className="clear" onClick={() => { setQuery(""); setActiveType(null); }}>Clear all</button>
+              {[...activeIndustries].map((industry) => <button key={industry} onClick={() => toggleIndustry(industry)}>{formatIndustry(industry)} <span>×</span></button>)}
+              <button className="clear" onClick={clearFilters}>Clear all</button>
             </div>
           )}
           {records.length === 0 ? (
-            <div className="empty-state"><h3>No references found</h3><p>Try a broader term or clear the current filters.</p><button onClick={() => { setQuery(""); setActiveType(null); }}>Show the full library</button></div>
+            <div className="empty-state"><h3>No references found</h3><p>Try a broader term or clear the current filters.</p><button onClick={clearFilters}>Show the full library</button></div>
           ) : (
             <div className="record-grid">
               {records.map((record) => {
                 const selected = comparisonIds.includes(record.id);
+                const industryRelevance = getIndustryRelevance(record, activeIndustries);
                 return (
                   <article className="record-card" key={record.id}>
                     <div className="record-meta"><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><span>{record.status}</span></div>
                     <h3><button onClick={() => openRecord(record)}>{record.name}</button></h3>
                     <p>{record.summary}</p>
+                    {industryRelevance && <p className={`relevance-note ${industryRelevance.kind}`}>{industryRelevance.label}</p>}
                     <dl><div><dt>Publisher</dt><dd>{record.issuer}</dd></div><div><dt>Version</dt><dd>{record.version ?? "Not specified"}</dd></div></dl>
                     <div className="record-actions">
                       <button className="open-record" onClick={() => openRecord(record)}>Open reference <span aria-hidden="true">→</span></button>
@@ -281,6 +326,7 @@ function App() {
               <div><dt>Version or edition</dt><dd>{selectedRecord.version ?? "Not specified"}</dd></div>
               <div><dt>Status</dt><dd>{humanize(selectedRecord.status)}</dd></div>
               <div><dt>Jurisdiction</dt><dd>{selectedRecord.jurisdictions.join(", ")}</dd></div>
+              <div><dt>Industry context</dt><dd>{selectedRecord.industries.map(formatIndustry).join(", ")} · Eidos editorial classification</dd></div>
               <div><dt>Content authority</dt><dd>{selectedRecord.contentAuthority === "publisher" ? "Publisher material — Eidos paraphrase" : "Eidos editorial sample"}</dd></div>
               <div><dt>Effective / applicable date</dt><dd>{selectedRecord.effectiveDate ?? "Not recorded"}</dd></div>
               <div><dt>Editorial review</dt><dd>{selectedRecord.reviewedAt} · {selectedRecord.reviewedBy}</dd></div>

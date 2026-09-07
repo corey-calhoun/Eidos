@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z } from "zod";
 import {
+  catalogIndustries,
   catalogRecordStatuses,
   catalogRecordTypes,
   catalogSummary,
@@ -32,10 +33,19 @@ const proposalRequest = z
   })
   .strict();
 
+const industryQuery = z.string().trim().min(1).max(300)
+  .refine((value) => {
+    const industries = value.split(",").map((industry) => industry.trim());
+    return industries.every(Boolean) && new Set(industries).size === industries.length;
+  }, "Industry query values must be non-empty and unique.")
+  .transform((value) => value.split(",").map((industry) => industry.trim()))
+  .pipe(z.array(z.enum(catalogIndustries)).min(1).max(catalogIndustries.length));
+
 const catalogQuery = z.object({
   q: z.string().trim().max(200).optional(),
   type: z.enum(catalogRecordTypes).optional(),
   status: z.enum(catalogRecordStatuses).optional(),
+  industry: industryQuery.optional(),
 }).strict();
 
 const catalogRecordParams = z.object({
@@ -121,6 +131,7 @@ export function buildServer(options: ServerOptions = {}) {
     const filters = {
       ...(parsed.data.type === undefined ? {} : { types: [parsed.data.type] }),
       ...(parsed.data.status === undefined ? {} : { statuses: [parsed.data.status] }),
+      ...(parsed.data.industry === undefined ? {} : { industries: parsed.data.industry }),
     };
     const records = searchCatalog(parsed.data.q ?? "", filters);
     return { records, summary: catalogSummary() };

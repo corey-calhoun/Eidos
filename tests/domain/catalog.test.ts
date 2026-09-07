@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   catalog,
+  catalogIndustries,
   catalogRecords,
   catalogRelationships,
   catalogSummary,
@@ -19,17 +20,17 @@ const record = {
   type: "framework" as const,
   summary: "A plain-language summary.",
   description: "A longer description of the example framework.",
-  issuer: "Example Authority",
+  issuer: "U.S. National Institute of Standards and Technology",
   jurisdictions: ["global"],
   industries: ["cross-industry"],
   applicability: "Organizations using the example framework.",
   version: "1.0",
   status: "current" as const,
-  officialUrl: "https://example.test/framework",
+  officialUrl: "https://www.nist.gov/cyberframework",
   aliases: ["Example security framework"],
   contentAuthority: "publisher" as const,
   contentMarker: "paraphrase" as const,
-  sourceCitation: "Example Authority official framework page",
+  sourceCitation: "NIST official framework page",
   copyrightTreatment: "metadata_summary_link" as const,
   reviewedAt: "2026-09-06",
   reviewedBy: "Eidos editorial review",
@@ -54,7 +55,7 @@ const concept = {
 
 const publisherConcept = {
   ...concept,
-  officialUrl: "https://example.test/framework/concept",
+  officialUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
   contentAuthority: "publisher" as const,
   contentMarker: "paraphrase" as const,
   sourceCitation: "Example Authority official concept page",
@@ -73,7 +74,7 @@ describe("catalog validation", () => {
         status: "verified",
         provenance: {
           authority: "authoritative",
-          sourceUrl: "https://example.test/framework/contents",
+          sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
           sourceLabel: "Example Framework contents",
           rationale: "The publisher identifies the concept as part of the framework.",
           reviewedAt: "2026-09-06",
@@ -89,6 +90,24 @@ describe("catalog validation", () => {
     expect(() => validateCatalog({ records: [{ ...record, injected: true }], relationships: [] })).toThrow();
     expect(() => validateCatalog({ records: [record, { ...concept, id: record.id }], relationships: [] })).toThrow(/identifiers/i);
     expect(() => validateCatalog({ records: [record, { ...concept, slug: record.slug }], relationships: [] })).toThrow(/slugs/i);
+  });
+
+  it("rejects unsupported industry taxonomy values", () => {
+    expect(() => validateCatalog({
+      records: [{ ...record, industries: ["made-up-sector"] }],
+      relationships: [],
+    })).toThrow();
+    expect(() => validateCatalog({
+      records: [{ ...record, industries: ["government", "government"] }],
+      relationships: [],
+    })).toThrow(/unique/i);
+  });
+
+  it("rejects publisher authority claimed through an unregistered source host", () => {
+    expect(() => validateCatalog({
+      records: [{ ...record, officialUrl: "https://attacker.invalid/fake" }],
+      relationships: [],
+    })).toThrow(/registered publisher host/i);
   });
 
   it("rejects dangling relationship references", () => {
@@ -142,7 +161,7 @@ describe("catalog validation", () => {
         status: "verified",
         provenance: {
           authority: "authoritative",
-          sourceUrl: "https://example.test/framework/contents",
+          sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
           sourceLabel: "Example Framework contents",
           rationale: "The publisher identifies the concept as part of the framework.",
           reviewedAt: "2026-09-06",
@@ -170,6 +189,27 @@ describe("catalog validation", () => {
         },
       }],
     })).toThrow();
+  });
+
+  it("rejects verified relationship provenance from an unregistered endpoint publisher host", () => {
+    expect(() => validateCatalog({
+      records: [record, publisherConcept],
+      relationships: [{
+        id: "relationship_fake_provenance",
+        source: record.id,
+        target: publisherConcept.id,
+        type: "maps_to",
+        status: "verified",
+        provenance: {
+          authority: "authoritative",
+          sourceUrl: "https://attacker.invalid/fake-mapping",
+          sourceLabel: "Claimed mapping",
+          rationale: "This source is not controlled by either endpoint publisher.",
+          reviewedAt: "2026-09-06",
+          reviewedBy: "Eidos editorial review",
+        },
+      }],
+    })).toThrow(/endpoint publisher host/i);
   });
 });
 
@@ -214,7 +254,31 @@ describe("curated catalog", () => {
     expect(searchCatalog("multi-factor").some((item) => item.type === "control")).toBe(true);
     expect(searchCatalog("nist", { types: ["framework"], domains: ["governance"] }).map((item) => item.slug)).toContain("nist-csf-2-0");
     expect(searchCatalog("", { jurisdictions: ["European Union"] }).map((item) => item.slug)).toContain("gdpr");
-    expect(searchCatalog("payment", { industries: ["payment-card"] }).map((item) => item.slug)).toContain("pci-dss-v4-0-1");
+    expect(searchCatalog("payment", { industries: ["payment-processing"] }).map((item) => item.slug)).toContain("pci-dss-v4-0-1");
+  });
+
+  it("filters by approved industries while retaining cross-industry references", () => {
+    expect(catalogIndustries).toContain("defense-industrial-base");
+    expect(catalogIndustries).toContain("government");
+    expect(catalogIndustries).toContain("healthcare");
+    expect(catalogIndustries).toContain("financial-services");
+
+    const healthcare = searchCatalog("", { industries: ["healthcare"] });
+    expect(healthcare.some((item) => item.slug === "hipaa-security-rule")).toBe(true);
+    expect(healthcare.some((item) => item.slug === "nist-csf-2-0")).toBe(true);
+    expect(healthcare.some((item) => item.slug === "pci-dss-v4-0-1")).toBe(false);
+
+    const government = searchCatalog("", { industries: ["government"] });
+    expect(government.some((item) => item.slug === "nist-sp-800-53-rev-5")).toBe(true);
+    expect(government.some((item) => item.slug === "nist-csf-2-0")).toBe(true);
+    const nistControls = government.find((item) => item.slug === "nist-sp-800-53-rev-5");
+    expect(nistControls).toMatchObject({
+      issuer: "U.S. National Institute of Standards and Technology",
+      contentAuthority: "publisher",
+      industries: ["government"],
+    });
+    expect(getRelatedRecords(nistControls!.id).some(({ relationship }) =>
+      relationship.status === "explanatory" && relationship.provenance.rationale.length > 0)).toBe(true);
   });
 
   it("gets records by slug without exposing mutable catalog state", () => {

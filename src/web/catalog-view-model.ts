@@ -1,4 +1,4 @@
-import type { CatalogRecord } from "../domain/catalog.js";
+import { catalogIndustries, type CatalogIndustry, type CatalogRecord } from "../domain/catalog.js";
 
 export type CatalogViewRecord = CatalogRecord;
 
@@ -7,12 +7,17 @@ export interface CatalogFilters {
   types: ReadonlySet<string>;
   statuses: ReadonlySet<string>;
   domains: ReadonlySet<string>;
+  industries: ReadonlySet<CatalogIndustry>;
 }
 
 export interface CatalogFacet {
   value: string;
   label: string;
   count: number;
+}
+
+export interface CatalogIndustryFacet extends CatalogFacet {
+  directCount: number;
 }
 
 const TYPE_LABELS: Readonly<Record<string, readonly [string, string]>> = {
@@ -24,6 +29,25 @@ const TYPE_LABELS: Readonly<Record<string, readonly [string, string]>> = {
   control: ["Control", "Controls"],
   concept: ["GRC concept", "GRC concepts"],
 };
+
+const INDUSTRY_LABELS: Readonly<Record<CatalogIndustry, string>> = {
+  "cross-industry": "Cross-industry",
+  "defense-industrial-base": "Defense / DoD",
+  government: "Government",
+  healthcare: "Healthcare",
+  "financial-services": "Financial services",
+  "payment-processing": "Payment processing",
+  education: "Education",
+  "technology-saas": "Technology / SaaS",
+  "professional-services": "Professional services",
+  retail: "Retail",
+  "small-business": "Small business",
+  "critical-infrastructure": "Critical infrastructure",
+};
+
+export function formatIndustry(industry: CatalogIndustry): string {
+  return INDUSTRY_LABELS[industry];
+}
 
 export function formatCatalogType(type: string, plural = false): string {
   const known = TYPE_LABELS[type];
@@ -55,11 +79,19 @@ export function buildCatalogFacets(records: readonly CatalogViewRecord[]): {
   types: CatalogFacet[];
   statuses: CatalogFacet[];
   domains: CatalogFacet[];
+  industries: CatalogIndustryFacet[];
 } {
   return {
     types: countFacets(records.map((record) => record.type), (type) => formatCatalogType(type, true)),
     statuses: countFacets(records.map((record) => record.status), humanize),
     domains: countFacets(records.flatMap((record) => record.domains), humanize),
+    industries: catalogIndustries.map((industry) => ({
+      value: industry,
+      label: formatIndustry(industry),
+      count: records.filter((record) => record.industries.includes(industry)
+        || (industry !== "cross-industry" && record.industries.includes("cross-industry"))).length,
+      directCount: records.filter((record) => record.industries.includes(industry)).length,
+    })),
   };
 }
 
@@ -98,6 +130,9 @@ export function filterCatalog<T extends CatalogViewRecord>(
     if (filters.types.size > 0 && !filters.types.has(record.type)) return false;
     if (filters.statuses.size > 0 && !filters.statuses.has(record.status)) return false;
     if (filters.domains.size > 0 && !record.domains.some((domain) => filters.domains.has(domain))) return false;
+    if (filters.industries.size > 0
+      && !record.industries.includes("cross-industry")
+      && !record.industries.some((industry) => filters.industries.has(industry))) return false;
 
     const searchable = [
       record.name,
@@ -114,4 +149,25 @@ export function filterCatalog<T extends CatalogViewRecord>(
     ].join(" ").toLocaleLowerCase();
     return terms.every((term) => searchable.includes(term));
   });
+}
+
+export function getIndustryRelevance(
+  record: CatalogViewRecord,
+  selectedIndustries: ReadonlySet<CatalogIndustry>,
+): { kind: "direct" | "cross_industry"; label: string } | null {
+  if (selectedIndustries.size === 0) return null;
+  const directMatches = record.industries.filter((industry) => selectedIndustries.has(industry));
+  if (directMatches.length > 0) {
+    return {
+      kind: "direct",
+      label: `Why this result: Eidos-tagged for ${directMatches.map(formatIndustry).join(" or ")}.`,
+    };
+  }
+  if (record.industries.includes("cross-industry")) {
+    return {
+      kind: "cross_industry",
+      label: "Why this result: cross-industry guidance that may support organizations in the selected sector.",
+    };
+  }
+  return null;
 }

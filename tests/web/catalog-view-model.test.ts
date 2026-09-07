@@ -3,6 +3,7 @@ import {
   buildCatalogFacets,
   filterCatalog,
   formatCatalogType,
+  getIndustryRelevance,
   getRecordDialogFocusAction,
   toggleComparison,
   type CatalogViewRecord,
@@ -12,7 +13,7 @@ const records: CatalogViewRecord[] = [
   {
     id: "framework_nist_csf_2", slug: "nist-csf-2-0", name: "NIST Cybersecurity Framework 2.0", acronym: "NIST CSF 2.0", type: "framework",
     summary: "A flexible framework for managing cybersecurity risk.", description: "An outcomes-based cybersecurity reference.",
-    issuer: "National Institute of Standards and Technology", jurisdictions: ["global"], industries: ["cross-industry"],
+    issuer: "National Institute of Standards and Technology", jurisdictions: ["global"], industries: ["cross-industry", "government"],
     applicability: "Organizations of any size and sector.", version: "2.0", status: "current", officialUrl: "https://www.nist.gov/cyberframework",
     aliases: ["NIST CSF"], contentAuthority: "publisher", contentMarker: "paraphrase", sourceCitation: "NIST official publisher page",
     copyrightTreatment: "metadata_summary_link", reviewedAt: "2026-09-06", reviewedBy: "Eidos editorial review",
@@ -21,7 +22,7 @@ const records: CatalogViewRecord[] = [
   {
     id: "regulation_gdpr", slug: "gdpr", name: "General Data Protection Regulation", acronym: "GDPR", type: "regulation",
     summary: "European Union rules for personal data protection.", description: "Rules for processing personal information.",
-    issuer: "European Union", jurisdictions: ["European Union"], industries: ["cross-industry"],
+    issuer: "European Union", jurisdictions: ["European Union"], industries: ["financial-services"],
     applicability: "Organizations processing personal data of people in the EEA.", version: "2016/679", status: "current", officialUrl: "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
     aliases: ["GDPR"], contentAuthority: "publisher", contentMarker: "paraphrase", sourceCitation: "EUR-Lex official publication",
     copyrightTreatment: "metadata_summary_link", effectiveDate: "2018-05-25", reviewedAt: "2026-09-06", reviewedBy: "Eidos editorial review",
@@ -41,11 +42,11 @@ const records: CatalogViewRecord[] = [
 describe("catalog view model", () => {
   it("searches readable record fields and combines type, status, and domain filters", () => {
     expect(filterCatalog(records, {
-      query: "personal data", types: new Set(["regulation"]), statuses: new Set(["current"]), domains: new Set(["Privacy"]),
+      query: "personal data", types: new Set(["regulation"]), statuses: new Set(["current"]), domains: new Set(["Privacy"]), industries: new Set(),
     }).map((record) => record.id)).toEqual(["regulation_gdpr"]);
 
     expect(filterCatalog(records, {
-      query: "national institute", types: new Set(), statuses: new Set(), domains: new Set(),
+      query: "national institute", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(),
     }).map((record) => record.id)).toEqual(["framework_nist_csf_2"]);
   });
 
@@ -62,6 +63,12 @@ describe("catalog view model", () => {
       { value: "Privacy", label: "Privacy", count: 1 },
       { value: "Risk management", label: "Risk management", count: 1 },
     ]);
+    expect(buildCatalogFacets(records).industries).toEqual(expect.arrayContaining([
+      expect.objectContaining({ value: "defense-industrial-base", label: "Defense / DoD", directCount: 0 }),
+      expect.objectContaining({ value: "government", label: "Government", directCount: 1 }),
+      expect.objectContaining({ value: "healthcare", label: "Healthcare" }),
+      expect.objectContaining({ value: "financial-services", label: "Financial services" }),
+    ]));
     expect(formatCatalogType("control_catalog", true)).toBe("Control catalogs");
     expect(formatCatalogType("concept")).toBe("GRC concept");
   });
@@ -86,5 +93,17 @@ describe("catalog view model", () => {
     expect(getRecordDialogFocusAction(true, true)).toBe("focus_dialog");
     expect(getRecordDialogFocusAction(true, false)).toBe("restore_library");
     expect(getRecordDialogFocusAction(false, false)).toBeNull();
+  });
+
+  it("filters selected industries with OR semantics and explains direct versus cross-industry matches", () => {
+    const filtered = filterCatalog(records, {
+      query: "", types: new Set(), statuses: new Set(), domains: new Set(), industries: new Set(["financial-services", "government"]),
+    });
+    expect(filtered.map((item) => item.id)).toEqual(["framework_nist_csf_2", "regulation_gdpr", "policy_incident_response"]);
+    expect(getIndustryRelevance(records[0]!, new Set(["government"]))).toMatchObject({
+      kind: "direct",
+      label: expect.stringContaining("Eidos-tagged"),
+    });
+    expect(getIndustryRelevance(records[2]!, new Set(["healthcare"]))).toMatchObject({ kind: "cross_industry" });
   });
 });

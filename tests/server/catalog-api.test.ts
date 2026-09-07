@@ -25,6 +25,38 @@ describe("Eidos catalog API", () => {
     expect(body.records.length).toBeGreaterThan(0);
   });
 
+  it("supports strict multi-industry filtering with cross-industry references", async () => {
+    const server = buildServer();
+    servers.push(server);
+
+    const response = await server.inject({
+      method: "GET",
+      url: "/api/catalog?industry=healthcare,government",
+      headers: trustedHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const records = response.json().records as Array<{ slug: string }>;
+    expect(records.some((record) => record.slug === "hipaa-security-rule")).toBe(true);
+    expect(records.some((record) => record.slug === "nist-csf-2-0")).toBe(true);
+
+    const invalid = await server.inject({
+      method: "GET",
+      url: "/api/catalog?industry=healthcare,unknown-sector",
+      headers: trustedHeaders,
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    for (const industry of ["healthcare,", ",healthcare", "healthcare,,government", "healthcare,healthcare"]) {
+      const malformed = await server.inject({
+        method: "GET",
+        url: `/api/catalog?industry=${encodeURIComponent(industry)}`,
+        headers: trustedHeaders,
+      });
+      expect(malformed.statusCode).toBe(400);
+    }
+  });
+
   it("returns a catalog record with related materials and provenance", async () => {
     const server = buildServer();
     servers.push(server);

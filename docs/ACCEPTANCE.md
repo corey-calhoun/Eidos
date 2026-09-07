@@ -57,6 +57,7 @@ Pass when automated tests show that:
 - unknown fields, unsupported material types, malformed dates or URLs, duplicate IDs, and dangling relationship endpoints fail closed;
 - direct quotations, paraphrases, and editorial explanations have distinguishable data markers;
 - a published record cannot treat AI output as authoritative source material.
+- publisher authority is accepted only when the official URL belongs to a registered host for the stated issuer, and verified relationship provenance belongs to a registered host for at least one endpoint publisher.
 
 ### AC-02 — Relationship authority and provenance
 
@@ -89,6 +90,12 @@ Pass when automated tests show that:
 - the library front door exposes directories for frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts;
 - each directory lists only records of its stated type and displays a deterministic count;
 - users can narrow the current result set by available version/status, jurisdiction, sector, or topic metadata without changing the underlying records;
+- users can select multiple approved industries, with selected industries combined using OR semantics;
+- direct industry matches and cross-industry fallback records are both permitted, but every filtered card explains which kind of relevance caused it to appear;
+- industry controls display direct-record coverage separately; a context with no direct record is labeled `Broad only` and cannot present fallback volume as direct sector coverage;
+- Defense/DoD, Government, Healthcare, Financial services, Payment processing, and Education are distinct selectable contexts;
+- filter controls expose programmatic pressed state, selected filters can be removed independently, and Clear all restores the complete catalog;
+- industry-filter language explicitly states that relevance is not a legal-applicability or compliance determination;
 - filters can be cleared and do not strand the user in an empty view;
 - a user can return to the complete catalog from every directory.
 

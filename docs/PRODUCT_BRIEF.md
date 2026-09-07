@@ -34,7 +34,7 @@ The MVP is not limited to a consultant assessing one client or one application.
 
 ## Approved priority industry contexts
 
-The next contextual-discovery phase should prioritize:
+The contextual-discovery taxonomy prioritizes:
 
 - **Defense industrial base / DoD contracting:** CMMC, DFARS, NIST SP 800-171, and related federal contract-security context;
 - **Government:** federal, state, local, and public-sector governance context such as FISMA, NIST SP 800-53, and FedRAMP where relevant;
@@ -47,6 +47,8 @@ The next contextual-discovery phase should prioritize:
 Defense/DoD and general government must remain distinct selectable contexts because their contractual, regulatory, and control baselines differ. Financial services and payment processing must likewise remain distinct even when records overlap.
 
 Industry selection is a relevance aid, not a legal applicability determination. Eidos must explain why a record was surfaced and use language such as “commonly relevant” or “potentially applicable” unless an authoritative rule and sufficient user context support a stronger statement.
+
+The current local slice provides multi-select industry filtering with OR semantics, keeps cross-industry references available as broad starting points, and explains whether each result is a direct tag or cross-industry fallback. Industry controls report direct catalog coverage; contexts without a direct record are labeled “Broad only” rather than displaying fallback volume as if it were sector coverage. Government has a source-verified NIST SP 800-53 record, Healthcare has HIPAA, and Financial services/payment processing have PCI DSS context. The Defense/DoD selector currently returns only cross-industry starting references; dedicated CMMC, DFARS, and NIST SP 800-171 records require separate publisher-source review before publication.
 
 ## Problem
 

@@ -11,6 +11,8 @@ Eidos explains the knowledge landscape. It does not assess an organization's rea
 - Built-in, deterministic catalog with representative framework, regulation, standard, control-catalog, policy, control, and GRC-concept records.
 - Universal local search across names, acronyms, descriptions, publishers, applicability, domains, and tags.
 - Browse-by-type directories and catalog filters.
+- Multi-select industry filtering with distinct Defense/DoD, Government, Healthcare, Financial services, Payment processing, and Education contexts.
+- Per-result explanations distinguish direct industry tags from broadly useful cross-industry references.
 - Reference cards and detailed record inspection.
 - Explicit issuer, version/status, jurisdiction, applicability, and official-source metadata where applicable.
 - Related-material navigation that distinguishes publisher-backed relationships from Eidos editorial context.
@@ -19,7 +21,7 @@ Eidos explains the knowledge landscape. It does not assess an organization's rea
 - Loopback-only Fastify API with strict query validation and existing defensive Host, Origin, response-header, and body-size controls.
 - No external account, cloud service, telemetry, or AI service is required.
 
-The built-in catalog is representative, not comprehensive. Eidos is educational and operational reference material—not legal advice, an audit, certification, or a determination that a law applies to a particular organization.
+The built-in catalog is representative, not comprehensive. Government includes a source-verified NIST SP 800-53 record; Healthcare includes HIPAA; Financial services/payment processing include PCI DSS context. The Defense/DoD selector currently provides cross-industry starting references rather than dedicated CMMC/DFARS coverage. Eidos is educational and operational reference material—not legal advice, an audit, certification, or a determination that a law applies to a particular organization.
 
 ## Prerequisites
 
@@ -69,7 +71,7 @@ Base URL: `http://127.0.0.1:4317`
 | Method | Endpoint | Behavior |
 |---|---|---|
 | `GET` | `/health` | Local API liveness |
-| `GET` | `/api/catalog` | List/search records; optional strict `q`, `type`, and `status` parameters |
+| `GET` | `/api/catalog` | List/search records; optional strict `q`, `type`, `status`, and comma-separated `industry` parameters |
 | `GET` | `/api/catalog/:slug` | One record plus directly related materials and relationship provenance |
 | `GET` | `/api/catalog/compare?slugs=a,b` | Compare two or three selected records without claiming equivalence or compliance |
 
@@ -112,6 +114,8 @@ Passing these gates does not authorize production deployment.
 - Display version, status, jurisdiction, applicability, and unknowns explicitly rather than guessing.
 - Label Eidos-authored policy/control examples and editorial relationships as non-authoritative.
 - Do not call a relationship official unless a publisher source supports it.
+- Publisher-classified records and verified relationship provenance fail closed unless their HTTPS host is registered to the stated issuer or an endpoint publisher.
+- Industry tags and comma-separated industry API filters reject unsupported, duplicate, and empty values.
 - AI suggestions, if added later, cannot publish or verify records or mappings.
 - Link to restricted standards rather than reproducing unlicensed text.
 - Do not infer legal applicability or claim compliance.

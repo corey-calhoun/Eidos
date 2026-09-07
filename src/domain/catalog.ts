@@ -11,6 +11,20 @@ export const catalogRecordTypes = [
 ] as const;
 
 export const catalogRecordStatuses = ["current", "draft", "superseded", "withdrawn"] as const;
+export const catalogIndustries = [
+  "cross-industry",
+  "defense-industrial-base",
+  "government",
+  "healthcare",
+  "financial-services",
+  "payment-processing",
+  "education",
+  "technology-saas",
+  "professional-services",
+  "retail",
+  "small-business",
+  "critical-infrastructure",
+] as const;
 export const catalogRelationshipTypes = [
   "contains",
   "implements",
@@ -25,6 +39,21 @@ const labelSchema = z.string().trim().min(1).max(200);
 const taxonomyValuesSchema = z.array(labelSchema).min(1).max(30);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+const publisherAuthorityHosts: Readonly<Record<string, readonly string[]>> = {
+  "U.S. National Institute of Standards and Technology": ["nist.gov"],
+  "International Organization for Standardization and International Electrotechnical Commission": ["iso.org"],
+  "Center for Internet Security": ["cisecurity.org"],
+  "PCI Security Standards Council": ["pcisecuritystandards.org"],
+  "U.S. Department of Health and Human Services": ["hhs.gov"],
+  "European Parliament and Council of the European Union": ["europa.eu"],
+};
+
+function isRegisteredPublisherUrl(issuer: string, sourceUrl: string): boolean {
+  const hostname = new URL(sourceUrl).hostname.toLocaleLowerCase();
+  return (publisherAuthorityHosts[issuer] ?? []).some((allowedHost) =>
+    hostname === allowedHost || hostname.endsWith(`.${allowedHost}`));
+}
+
 export const catalogRecordSchema = z.object({
   id: identifierSchema,
   slug: slugSchema,
@@ -35,7 +64,7 @@ export const catalogRecordSchema = z.object({
   description: z.string().trim().min(1).max(3000),
   issuer: labelSchema,
   jurisdictions: taxonomyValuesSchema,
-  industries: taxonomyValuesSchema,
+  industries: z.array(z.enum(catalogIndustries)).min(1).max(catalogIndustries.length),
   applicability: z.string().trim().min(1).max(1000),
   version: z.string().trim().min(1).max(80).optional(),
   status: z.enum(catalogRecordStatuses),
@@ -52,9 +81,16 @@ export const catalogRecordSchema = z.object({
   domains: taxonomyValuesSchema,
   tags: taxonomyValuesSchema,
 }).strict().superRefine((record, context) => {
+  if (new Set(record.industries).size !== record.industries.length) {
+    context.addIssue({ code: "custom", path: ["industries"], message: "Industry values must be unique." });
+  }
   if (record.contentAuthority === "publisher"
     && (record.officialUrl === undefined || record.contentMarker !== "paraphrase" || record.copyrightTreatment !== "metadata_summary_link")) {
     context.addIssue({ code: "custom", message: "Publisher records require an official URL and metadata/summary/link treatment." });
+  }
+  if (record.contentAuthority === "publisher" && record.officialUrl !== undefined
+    && !isRegisteredPublisherUrl(record.issuer, record.officialUrl)) {
+    context.addIssue({ code: "custom", path: ["officialUrl"], message: "Publisher records require a registered publisher host for the issuer." });
   }
   if (record.contentAuthority === "eidos_editorial"
     && (record.contentMarker !== "editorial" || record.copyrightTreatment !== "eidos_original")) {
@@ -134,6 +170,13 @@ export const catalogSchema = z.object({
           path: ["relationships", index],
           message: "Verified relationships require publisher-classified endpoints.",
         });
+      } else if (!isRegisteredPublisherUrl(source.issuer, relationship.provenance.sourceUrl)
+        && !isRegisteredPublisherUrl(target.issuer, relationship.provenance.sourceUrl)) {
+        context.addIssue({
+          code: "custom",
+          path: ["relationships", index, "provenance", "sourceUrl"],
+          message: "Verified relationship provenance must use a registered endpoint publisher host.",
+        });
       }
     }
   });
@@ -144,12 +187,13 @@ export type CatalogRelationship = z.infer<typeof catalogRelationshipSchema>;
 export type Catalog = z.infer<typeof catalogSchema>;
 export type CatalogRecordType = (typeof catalogRecordTypes)[number];
 export type CatalogRecordStatus = (typeof catalogRecordStatuses)[number];
+export type CatalogIndustry = (typeof catalogIndustries)[number];
 
 export interface CatalogSearchFilters {
   types?: readonly CatalogRecordType[];
   statuses?: readonly CatalogRecordStatus[];
   jurisdictions?: readonly string[];
-  industries?: readonly string[];
+  industries?: readonly CatalogIndustry[];
   domains?: readonly string[];
   tags?: readonly string[];
 }
@@ -185,10 +229,18 @@ const rawSampleCatalog = {
       officialUrl: "https://www.cisecurity.org/controls/v8-1", domains: ["cybersecurity", "asset management", "access control"], tags: ["safeguards", "implementation groups", "cyber hygiene"],
     },
     {
+      id: "catalog_nist_sp_800_53_rev_5", slug: "nist-sp-800-53-rev-5", name: "NIST SP 800-53 Revision 5", acronym: "NIST SP 800-53", type: "control_catalog",
+      summary: "A customizable catalog of security and privacy controls for information systems and organizations.",
+      description: "NIST SP 800-53 Revision 5 organizes flexible security and privacy controls that can support organization-wide risk management and requirements arising from missions, laws, directives, policies, standards, and guidance.",
+      issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States"], industries: ["government"],
+      applicability: "Organizations selecting and tailoring security and privacy controls for information systems and organizational risk, particularly in U.S. government contexts.", version: "Revision 5, Update 1", status: "current",
+      officialUrl: "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final", domains: ["security controls", "privacy controls", "risk management"], tags: ["control families", "customizable controls", "information systems"],
+    },
+    {
       id: "standard_pci_dss_v4_0_1", slug: "pci-dss-v4-0-1", name: "Payment Card Industry Data Security Standard v4.0.1", acronym: "PCI DSS", type: "standard",
       summary: "A security standard for protecting payment account data throughout its lifecycle.",
       description: "PCI DSS establishes technical and operational requirements for entities that store, process, or transmit cardholder data or can affect the cardholder data environment.",
-      issuer: "PCI Security Standards Council", jurisdictions: ["global"], industries: ["payment-card", "retail", "financial services"],
+      issuer: "PCI Security Standards Council", jurisdictions: ["global"], industries: ["payment-processing", "retail", "financial-services"],
       applicability: "Entities that store, process, or transmit cardholder data and relevant service providers.", version: "4.0.1", status: "current",
       officialUrl: "https://www.pcisecuritystandards.org/standards/pci-dss/", domains: ["payment security", "access control", "network security"], tags: ["cardholder data", "CDE", "compliance"],
     },
@@ -271,6 +323,10 @@ const rawSampleCatalog = {
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "The outcome-oriented framework and prioritized safeguard catalog are often considered together; no exact mapping is asserted." },
     },
     {
+      id: "relationship_nist_800_53_context", source: "framework_nist_csf_2_0", target: "catalog_nist_sp_800_53_rev_5", type: "related_to", status: "explanatory",
+      provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "NIST CSF describes cybersecurity outcomes while SP 800-53 provides a control catalog; this relationship is orientation, not an official crosswalk or compliance mapping." },
+    },
+    {
       id: "relationship_access_policy_mfa", source: "policy_access_control", target: "control_multi_factor_authentication", type: "implements", status: "explanatory",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos sample-library rationale", rationale: "The sample MFA control illustrates one possible implementation of the sample policy; organizations must tailor it." },
     },
@@ -341,6 +397,12 @@ function includesAny(values: readonly string[], expected: readonly string[] | un
   return expected.some((value) => normalized.has(value.toLocaleLowerCase()));
 }
 
+function includesIndustry(values: readonly CatalogIndustry[], expected: readonly CatalogIndustry[] | undefined): boolean {
+  if (expected === undefined || expected.length === 0) return true;
+  return expected.some((industry) => values.includes(industry)
+    || (industry !== "cross-industry" && values.includes("cross-industry")));
+}
+
 export function searchCatalog(query: string, filters: CatalogSearchFilters = {}): CatalogRecord[] {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return catalog.records.filter((record) => {
@@ -353,7 +415,7 @@ export function searchCatalog(query: string, filters: CatalogSearchFilters = {})
       && (filters.types === undefined || filters.types.includes(record.type))
       && (filters.statuses === undefined || filters.statuses.includes(record.status))
       && includesAny(record.jurisdictions, filters.jurisdictions)
-      && includesAny(record.industries, filters.industries)
+      && includesIndustry(record.industries, filters.industries)
       && includesAny(record.domains, filters.domains)
       && includesAny(record.tags, filters.tags);
   });
