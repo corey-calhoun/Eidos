@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "project": "Eidos",
+  "management": {
+    "human_director": "Corey",
+    "managing_director": "Rosco"
+  },
+  "local_llm": {
+    "provider": "ollama",
+    "endpoint": "http://localhost:11434",
+    "model": "qwen2.5-coder:14b",
+    "status": "provisioning_required",
+    "fail_closed": true
+  },
+  "required_roles": [
+    "AI Product Manager",
+    "Principal Software Architect",
+    "Senior UI/UX Designer and Frontend Engineer",
+    "Senior Backend and API Engineer",
+    "Senior Polyglot Software Engineer",
+    "Principal QA Automation Engineer",
+    "Principal Application Security Engineer",
+    "Senior Technical Documentation Specialist",
+    "DevSecOps and Release Engineer"
+  ],
+  "execution": {
+    "maximum_concurrent_agents": 3,
+    "strategy": "dependency_aware_waves",
+    "waves": [
+      ["product_manager", "software_architect", "application_security_engineer"],
+      ["ui_ux_engineer", "backend_api_engineer", "qa_automation_engineer"],
+      ["polyglot_developer", "ui_ux_engineer", "backend_api_engineer"],
+      ["qa_automation_engineer", "application_security_engineer", "documentation_specialist"],
+      ["devsecops_engineer", "qa_automation_engineer", "application_security_engineer"]
+    ]
+  },
+  "acceptance_policy": {
+    "agent_reports_are_evidence": false,
+    "independent_verification_required": true,
+    "production_requires_human_approval": true
+  }
+}
