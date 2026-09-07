@@ -1,223 +1,269 @@
-# Eidos Local MVP Acceptance
+# Eidos Catalog-First Local MVP Acceptance
 
-**Status:** Implemented local-MVP release contract
-**Scope:** One consultant, one client web application, local-only sample/test data
+**Status:** Target acceptance contract for the catalog-first pivot
+
+**Scope:** Single-user, local-only cybersecurity governance reference library using built-in sample data
+
 **Release command:** `npm ci && npm run accept`
-**Production authority:** Passing this contract does not authorize deployment. Production still requires Corey's explicit approval and a separate security review.
 
-## 1. Canonical sample contract
+**Production authority:** Passing this contract does not authorize deployment. Production requires Corey's explicit approval and a separate security review.
 
-A fresh empty database must seed one sample assessment with 13 nodes and 12 relationships. The primary verified assurance path is:
+This contract replaces the former one-client assessment-graph acceptance target. Existing implementation evidence may belong to that earlier product direction and does not satisfy a catalog criterion unless it verifies the behavior stated here.
 
-```text
-app_acme_orders
-  -> risk_admin_compromise
-  -> control_admin_mfa
-  -> validation_mfa_login
-  -> evidence_mfa_test
-  -> requirement_asvs_auth
-  -> framework_owasp_asvs
-```
+## 1. Acceptance boundary
 
-The sample must also include the non-authoritative side branch:
+The MVP is accepted only when a reviewer can use the library front door to:
 
 ```text
-control_admin_mfa
-  -. proposed .-> policy_access_control
+search or browse
+  -> scan reference cards
+  -> open a reference detail
+  -> verify source and version context
+  -> follow a related item
+  -> compare selected records
 ```
 
-`edge_control_policy` is a client-asserted proposal. It must remain visibly and semantically distinct from the 11 verified relationships and cannot establish authoritative assurance.
+The workflow must work without external services, network access, a client assessment workspace, or a relationship map. A map may be included, but it is optional and cannot compensate for a missing catalog workflow.
 
-All authoritative non-unknown nodes and all verified relationships require accepted human or deterministic provenance. The proposed side branch must not contain verification metadata that implies acceptance.
+Eidos explains reusable knowledge. Readiness assessment, evidence collection, gaps, findings, remediation, and assurance scoring are outside this acceptance contract and belong to Checkpoint.
 
-## 2. Automated acceptance criteria
+## 2. Built-in catalog fixture
 
-### AC-01 — Deterministic assurance rules
-
-**Evidence:** `tests/domain/assurance.test.ts`
+The repository must contain a deterministic, reviewable built-in catalog fixture suitable for local demonstration and automated tests.
 
 Pass when:
 
-- every supported assurance state has explicit deterministic precedence;
-- stale, failed, partial, risk-accepted, not-applicable, validated, planned, implemented-unverified, and unknown outcomes are distinguishable;
-- AI-proposed and otherwise untrusted inputs cannot establish validated assurance;
-- repeated evaluation does not depend on graph layout, locale, or a model response.
+- the fixture contains at least one published record for each supported type: framework, regulation, standard, control catalog, policy, control, and GRC concept;
+- at least two records share a meaningful comparison topic;
+- at least one record has an alias and at least one has a recognizable identifier;
+- at least one versioned record includes version or revision data;
+- at least one regulation includes jurisdiction and effective-date context;
+- the fixture includes at least one official relationship and one Eidos-curated relationship, each backed by the required provenance;
+- records and relationships use stable unique IDs so links and tests are repeatable;
+- the fixture uses only material that may be stored and displayed under its source terms; restricted source text is represented by metadata, a short permitted quotation if appropriate, and a link rather than unauthorized reproduction;
+- loading the same fixture repeatedly produces the same published catalog without duplicate records or relationships.
 
-### AC-02 — Strict graph and provenance validation
+The fixture is representative, not a claim of complete coverage.
 
-**Evidence:** `tests/domain/graph.test.ts`
+## 3. Automated acceptance criteria
 
-Pass when:
+### AC-01 — Strict catalog validation
 
-- unknown node, edge, provenance, and nested fields fail closed;
-- duplicate IDs and dangling relationships are rejected;
-- every one of the 20 relationship types has an explicit endpoint matrix;
-- nonsensical unlisted endpoint pairs are rejected;
-- non-unknown node assurance requires accepted authoritative provenance;
-- verified relationships require human or deterministic authority, actor, and verification time;
-- client assertions and AI proposals cannot establish verification.
+Pass when automated tests show that:
 
-### AC-03 — Canonical sample graph
+- every third-party published record has a stable ID, title, supported material type, plain-language summary, publisher or issuing authority, authoritative-source citation, source URL or document identifier, and review provenance;
+- every Eidos-authored sample policy, control, or explanatory concept identifies Eidos as its editorial issuer, is visibly non-authoritative, and does not present a supporting reference as the source of the sample text;
+- version, revision, edition, publication date, effective date, jurisdiction, sector, audience, and applicability may be marked unknown when they do not apply or cannot be verified; they are never guessed;
+- unknown fields, unsupported material types, malformed dates or URLs, duplicate IDs, and dangling relationship endpoints fail closed;
+- direct quotations, paraphrases, and editorial explanations have distinguishable data markers;
+- a published record cannot treat AI output as authoritative source material.
 
-**Evidence:** `tests/domain/sample-graph.test.ts`
+### AC-02 — Relationship authority and provenance
 
-Pass when:
+Pass when automated tests show that:
 
-- the canonical IDs and complete application-to-framework path exist;
-- the graph contains exactly 13 nodes and 12 relationships;
-- `edge_control_policy` is proposed and client-asserted;
-- the other 11 relationships are verified;
-- graph validation succeeds and summary metrics remain deterministic.
+- each relationship identifies both endpoint records, a supported relationship type, a plain-language explanation, authority, provenance, and last-review time;
+- authority is limited to `official`, `eidos_curated`, or `unverified`;
+- `official` is accepted only with an authoritative source that explicitly supports the relationship;
+- `eidos_curated` is visibly editorial and cannot be serialized or displayed as official;
+- `unverified` and AI-suggested relationships cannot be presented as established facts;
+- invalid endpoints, missing provenance, unsupported relationship types, and self-contradictory authority metadata fail closed.
 
-### AC-04 — Deterministic exports and integrity
+### AC-03 — Universal search
 
-**Evidence:** `tests/domain/export.test.ts`
+Pass when automated tests show that:
 
-Pass when:
+- one search control searches the complete published catalog rather than only the current directory;
+- title, common name, alias, identifier, summary, publisher, and topic tags are searchable;
+- matching is case-insensitive and ignores harmless surrounding whitespace;
+- results are deterministic for the same catalog and query;
+- every result shows title, material type, short summary, publisher, and version/status context;
+- selecting a result opens the matching detail view;
+- a no-results query gives a clear empty state and a way to clear the query;
+- search does not require network access.
 
-- JSON serialization has stable object keys, node ordering, and relationship ordering;
-- the caller provides a valid RFC 3339 UTC generation time;
-- the SHA-256 digest covers schema version, generation time, and canonical graph content;
-- metadata substitution changes the digest;
-- the Markdown summary reports assurance and provenance without claiming certification, audit completion, or compliance.
+### AC-04 — Browse directories and filtering
 
-### AC-05 — Secure local persistence
+Pass when automated tests show that:
 
-**Evidence:** `tests/server/storage.test.ts`, `tests/server/config.test.ts`
+- the library front door exposes directories for frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts;
+- each directory lists only records of its stated type and displays a deterministic count;
+- users can narrow the current result set by available version/status, jurisdiction, sector, or topic metadata without changing the underlying records;
+- filters can be cleared and do not strand the user in an empty view;
+- a user can return to the complete catalog from every directory.
 
-Pass when:
+### AC-05 — Reference cards and detail view
 
-- the graph persists across connections;
-- snapshot replacement is atomic and parameterized;
-- invalid or unknown input cannot replace committed data;
-- foreign keys and strict persisted-data validation are enforced;
-- unsupported migration versions and known versions with tampered checksums are rejected;
-- `%LOCALAPPDATA%\Eidos\eidos.sqlite` is the Windows default;
-- an explicit `EIDOS_DATABASE_PATH` wins and the repository-local path is only a fallback.
+Pass when automated tests show that:
 
-### AC-06 — Fail-closed local API
+- each published record has a stable route or deep link;
+- a reference card identifies the record without requiring the user to open a graph;
+- the detail view shows title, type, summary, publisher, authoritative citation/link, known version and date context, status, applicability context, tags, and review provenance;
+- unknown or not-applicable metadata is labeled plainly rather than omitted in a misleading way;
+- external links are visibly identified and use safe browser behavior;
+- a missing or unknown record ID produces a safe not-found state with a route back to the library.
 
-**Evidence:** `tests/server/api.test.ts`
+### AC-06 — Related materials
 
-Pass when:
+Pass when automated tests show that:
 
-- health, graph, snapshot export, and Markdown export routes return their documented representations;
-- API responses include request IDs, no-store behavior, and defensive headers;
-- hostile Host and Origin values are rejected;
-- unsafe methods without an approved Origin are rejected;
-- unsupported media types, malformed bodies, oversized bodies, and unknown request fields fail safely;
-- the analysis route returns only `ai_proposed` output with `canVerify: false` and cannot mutate the graph.
+- a detail view lists each directly related record with relationship type, reason, authority label, supporting source or editorial provenance, and review date;
+- following a related item opens the correct detail view;
+- back navigation returns to the prior record and preserves the user's search or browse context;
+- official, Eidos-curated, and unverified relationships have distinct text labels and are not distinguished by color alone;
+- records remain usable when they have no relationships.
 
-### AC-07 — Graph view-model equivalence
+### AC-07 — Comparison
 
-**Evidence:** `tests/web/graph-view-model.test.ts`
+Pass when automated tests show that:
 
-Pass when:
+- a user can select at least two records and open a side-by-side comparison;
+- the comparison includes type, publisher, purpose/summary, version or revision, status, jurisdiction/applicability, and authoritative source;
+- missing values are shown as unknown or not applicable rather than treated as equal;
+- the comparison does not state or imply equivalence, compliance, superiority, or an official mapping unless an authoritative source explicitly supports that statement;
+- each compared item links back to its full detail view;
+- removing an item updates the comparison without changing catalog data.
 
-- node and relationship filters produce the same scope for the graph and accessible relationship list;
-- assurance metrics reflect the visible scope;
-- verified, proposed, and unknown relationship states map to distinct display semantics;
-- selecting an entity shows only its actual relationships.
+### AC-08 — Catalog persistence and deterministic loading
 
-### AC-08 — Orientation-preserving graph layout
+Pass when automated tests show that:
 
-**Evidence:** `tests/web/graph-runtime.test.ts`
+- the catalog loads locally without an external API, sign-in, telemetry service, or internet connection;
+- validated records and relationships persist across local application restarts when persistence is enabled;
+- a failed validation or interrupted replacement cannot partially publish a catalog update;
+- unsupported schema or migration versions fail with an actionable local error and preserve the last valid catalog;
+- active databases, generated exports, credentials, environment files, and private organizational material remain outside version control.
 
-Pass when:
+### AC-09 — Optional relationship map equivalence
 
-- semantic node families occupy stable left-to-right columns;
-- the canonical assurance path moves toward evidence and requirements;
-- initial node positions are deterministic and non-overlapping;
-- positions derive from the full graph so filters do not move surviving nodes;
-- the viewport fits after graph initialization.
+This criterion applies only if a relationship map ships in the MVP.
 
-### AC-09 — Navigation and deep links
+Pass when automated tests show that:
 
-**Evidence:** `tests/web/graph-navigation.test.ts`
+- the map uses the same record and relationship IDs as the catalog;
+- selecting a map item opens the same detail view available from search and browse;
+- relationship authority labels agree with the detail view;
+- filtering does not invent, remove from storage, or change the authority of relationships;
+- every fact available only visually in the map has an equivalent text representation.
 
-Pass when:
-
-- selection history moves backward and forward without losing order;
-- history is bounded;
-- valid `?entity=<id>` selections restore after graph load;
-- unknown or missing IDs return to the safe root state.
+Omitting the relationship map does not fail the MVP.
 
 ### AC-10 — Release command
 
-**Evidence:** `package.json`
-
 `npm run accept` must execute, in order:
 
-1. Browser/domain and server/domain TypeScript checks.
-2. All discovered Vitest tests.
-3. Production web and server builds.
-4. Production dependency audit at high severity.
+1. browser/domain and server/domain TypeScript checks;
+2. all discovered automated tests;
+3. production web and server builds;
+4. the production dependency audit at high severity.
 
-Every command must exit `0`. Build outputs must remain uncommitted.
+Every command must exit `0`. Build output must remain uncommitted. Test names or a release evidence record must make it possible to trace AC-01 through AC-09 to automated evidence, marking AC-09 not applicable when no map ships.
 
-## 3. Runtime and human acceptance criteria
+## 4. Runtime and human acceptance criteria
 
-These checks use the compiled artifacts after `npm run build`:
+Run the compiled local artifacts after `npm run build`:
 
 ```bash
 npm run start:api
 npm run start:web
 ```
 
-### AC-11 — Local runtime and security boundary
+### AC-11 — Catalog-first front door
 
-Pass when:
+Pass when an independent reviewer confirms that:
 
-- API listens only on `127.0.0.1:4317`;
-- compiled UI preview listens only on `127.0.0.1:4173`;
-- `/health` returns `{"status":"ok","service":"eidos-api"}`;
-- `/api/graph` returns the valid persisted sample;
-- hostile Host returns `421`;
-- hostile or missing Origin on an unsafe request returns `403`;
-- unsupported `text/plain` POST returns `415`;
-- a trusted JSON proposal request returns `200`, `ai_proposed`, and `canVerify: false`;
-- active data is outside the repository unless an explicit test path is supplied.
+- opening Eidos shows a universal search control and clear browse directories before any graph or assessment content;
+- no client, application, readiness score, assurance chain, evidence request, or remediation workflow is required to begin;
+- the reviewer can find one fixture item by title, one by alias or identifier, and one unfamiliar item by browsing;
+- the reviewer can complete the full acceptance workflow in Section 1 without opening a relationship map;
+- page and control language describes a library/reference task rather than a client assessment task.
 
-### AC-12 — Visual and interaction review
+### AC-12 — Source and version comprehension
 
-Pass when an independent reviewer confirms:
+Pass when an independent reviewer can, for sampled records:
 
-- all sample entities are visible without material node overlap or release-blocking clipping;
-- the assurance flow is readable left-to-right;
-- verified and proposed relationships are visually distinguishable;
-- a valid deep link selects the correct entity and opens the matching detail drawer;
-- entity provenance shows authority, source, observation time, and verification details when present;
-- the graph remains visible behind the drawer;
-- keyboard graph entry, Escape close, and focus-return behavior are implemented without a keyboard trap;
-- reduced-motion styling does not remove function;
-- the non-graph relationship representation remains available.
+- identify what the item is, who publishes or issues it, and where its authoritative source can be found;
+- identify the represented version, revision, status, jurisdiction, and effective period where applicable, or correctly determine that a value is unknown;
+- distinguish quotation from Eidos paraphrase or editorial explanation;
+- distinguish an official relationship from an Eidos-curated or unverified one;
+- see when and by whom or what the record and relationship were last reviewed.
 
-Automated unit coverage supports these checks, but screenshot review does not replace a future screen-reader and browser-automation pass.
+No sampled page may describe Eidos as the issuing authority for third-party material.
 
-## 4. Release evidence record
+### AC-13 — Accessible core journey
 
-A local-MVP baseline is accepted only when the release record contains:
+Pass when an independent reviewer confirms that:
 
-- exact test-file and test counts;
-- typecheck, build, and audit outcomes;
-- secret-scan outcome;
-- loopback socket evidence;
-- runtime security response codes;
-- baseline and deep-link screenshots;
-- clean Git status and commit identifier;
-- synchronized `E:\Notes\Obsidian\04 Projects\Eidos.md` status.
+- search, browse, card selection, detail navigation, related-item navigation, and comparison are keyboard operable with visible focus;
+- headings, landmarks, controls, material types, status, and relationship authority have meaningful text labels;
+- focus moves predictably when a detail or comparison view opens and returns to the invoking control when it closes;
+- no keyboard trap exists;
+- 200% browser zoom preserves the core journey without loss of content or function;
+- reduced-motion preference does not remove content or required function;
+- information is not conveyed by color alone.
 
-## 5. Deferred production gates
+Automated accessibility checks support but do not replace keyboard and zoom review.
 
-The following are intentionally outside this local MVP and become mandatory before any production proposal:
+### AC-14 — Local security and privacy boundary
 
-- authenticated users, authorization, anti-forgery controls, and tenant/workspace isolation;
-- real graph/evidence mutation endpoints with concurrency, idempotency, and append-only audit history;
-- evidence-file ingestion, integrity, retention, and secure deletion;
-- supported import/restore, ordered forward migrations, backup verification, and rollback automation;
-- hardened single-process or desktop packaging rather than Vite preview;
-- TLS and configurable deployment topology;
-- rate limiting, monitoring, structured security logs, service supervision, and incident response;
-- SBOM, provenance-attested release artifacts, and production dependency policy;
-- Playwright end-to-end tests, automated accessibility scans, Windows screen-reader verification, 200% zoom review, and full keyboard journey evidence;
-- external penetration testing and explicit human deployment authorization.
+Pass when runtime evidence confirms that:
+
+- web and API processes bind only to approved loopback addresses;
+- hostile Host and Origin values are rejected according to the security requirements;
+- defensive response headers, request IDs, no-store behavior, body limits, and strict request validation remain active where applicable;
+- no request is made to a third-party analytics, AI, catalog, or telemetry service during the core journey;
+- the UI does not invite entry of client evidence or claim to assess an organization's readiness;
+- active local data is stored outside the repository unless an explicit test path is used.
+
+Loopback restrictions are not authentication and do not make this build production-safe.
+
+### AC-15 — Claims and editorial review
+
+Pass when a product/documentation reviewer samples every fixture record and relationship and confirms that:
+
+- factual claims are traceable to the displayed source or explicitly labeled editorial explanation;
+- legal and regulatory summaries include jurisdiction/date context and do not offer legal advice;
+- no Eidos-curated mapping is labeled official;
+- no text claims certification, audit completion, compliance, readiness, or guaranteed applicability;
+- no restricted source is reproduced beyond permitted terms;
+- unknowns and unresolved source questions are visible rather than silently completed.
+
+## 5. Release evidence record
+
+A catalog-first local MVP baseline is accepted only when the release record contains:
+
+- exact test-file and test counts and a mapping from AC-01 through AC-10 to automated evidence;
+- typecheck, build, and dependency-audit outcomes;
+- catalog fixture validation and deterministic-load results;
+- source/license/editorial review outcome for every built-in fixture record;
+- secret-scan and repository data-hygiene outcomes;
+- loopback socket and runtime security-response evidence;
+- screenshots of the library front door, search results, one directory, one reference detail, related materials, comparison, and the optional map if shipped;
+- keyboard, 200% zoom, reduced-motion, and non-color-only review results;
+- clean Git status and commit identifier, with any pre-existing unrelated changes recorded separately.
+
+## 6. Explicit non-acceptance conditions
+
+The MVP fails acceptance if any of the following is true:
+
+- the primary entry point is a client assessment or graph rather than the reference library;
+- a graph is required to discover or understand records;
+- readiness, compliance, assurance, maturity, or legal conclusions are generated for an organization;
+- source, version/status context, or provenance is missing or guessed on a published fixture record;
+- an Eidos-created or AI-suggested relationship is represented as official;
+- the product requires an external service or internet connection for the built-in catalog workflow;
+- restricted source material is reproduced without permission;
+- passing tests are used to claim production readiness.
+
+## 7. Deferred production gates
+
+The following are outside the first local MVP and require separate scope and acceptance criteria:
+
+- accounts, authentication, authorization, tenant isolation, hosted operation, and cloud sync;
+- collaborative editing, editorial approval queues, and append-only audit history;
+- automated publisher monitoring, source ingestion, license enforcement, and update alerts;
+- comprehensive libraries or guarantees that content is current or complete;
+- organization-specific overlays, evidence, assessments, findings, remediation, or Checkpoint integration;
+- AI-assisted drafting or relationship suggestions beyond a non-authoritative, human-reviewed experiment;
+- import/export packages, signed releases, backup/restore automation, and forward migration support;
+- production packaging, TLS, configurable deployment, monitoring, incident response, and external penetration testing.

@@ -1,6 +1,9 @@
 # Eidos Architecture
 
-**Status:** Accepted baseline for the first complete demonstration
+> [!IMPORTANT]
+> **Historical assessment-prototype architecture.** This document describes the preserved `d79fa56` Security Assurance Graph, not the current catalog-first Eidos product. For current authority, use [PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md), [ACCEPTANCE.md](./ACCEPTANCE.md), and the implemented catalog module/API. Reuse below is optional and must support the catalog rather than redefine it.
+
+**Status:** Historical prototype baseline; superseded for product direction
 **Decision:** TypeScript modular monolith, local-first, single-user
 **Runtime:** Node.js 24
 **Related contracts:** [DATA_MODEL.md](./DATA_MODEL.md), [API_CONTRACTS.md](./API_CONTRACTS.md)

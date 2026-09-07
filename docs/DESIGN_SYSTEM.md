@@ -1,6 +1,9 @@
 # Eidos Design System Contract
 
-**Status:** Normative UI contract
+> [!IMPORTANT]
+> **Historical graph-workspace design.** The current Eidos interface is catalog first: search, browse directories, reference cards, details, related materials, and comparison. The rules below are retained only as possible input to a future optional relationship-map view.
+
+**Status:** Historical prototype contract; not normative for the catalog UI
 **Scope:** Security Assurance Graph for a consultant assessing one client web application
 **Companion contracts:** [Visual Grammar](./VISUAL_GRAMMAR.md), [Motion Specification](./MOTION_SPECIFICATION.md)
 

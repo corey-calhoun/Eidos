@@ -2,6 +2,9 @@
 
 This runbook covers the currently implemented local MVP. It does not describe deployment: Eidos has no production packaging, hosted mode, service manager, or supported remote listener.
 
+> [!NOTE]
+> Startup, loopback, and troubleshooting procedures remain applicable. Assessment routes and assessment-database initialization are disabled in the normal runtime. Any graph-specific UI, sample-assessment, database, or export instructions later in this document apply only to explicit test/developer compatibility mode. The current workflow is catalog search, browse, record detail, relationships, and comparison as documented in `README.md`.
+
 ## Runtime topology
 
 | Process | Command | Listen address |

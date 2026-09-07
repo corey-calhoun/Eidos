@@ -1,6 +1,9 @@
 # Eidos Data Model
 
-**Status:** Normative domain and persistence contract
+> [!IMPORTANT]
+> **Historical assessment-prototype model.** The graph entities and SQLite snapshot below describe the preserved `d79fa56` prototype. The current catalog model is implemented and strictly validated in `src/domain/catalog.ts`; [PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md) and [ACCEPTANCE.md](./ACCEPTANCE.md) govern product direction.
+
+**Status:** Historical prototype contract; not normative for the catalog
 **Schema version:** `1.0.0`
 **Related documents:** [ARCHITECTURE.md](./ARCHITECTURE.md), [API_CONTRACTS.md](./API_CONTRACTS.md)
 

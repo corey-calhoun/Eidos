@@ -3,12 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { sampleGraph } from "../../src/domain/sample-graph.js";
-import { buildServer } from "../../src/server/app.js";
+import { buildServer, type ServerOptions } from "../../src/server/app.js";
 import { GraphSnapshotRepository } from "../../src/server/storage.js";
 
 const servers: Array<ReturnType<typeof buildServer>> = [];
 const temporaryDirectories: string[] = [];
 const trustedHeaders = { host: "127.0.0.1:4317" };
+
+function buildLegacyServer(options: ServerOptions = {}) {
+  return buildServer({ ...options, enableLegacyAssessmentApi: true });
+}
 
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
@@ -19,7 +23,7 @@ afterEach(async () => {
 
 describe("Eidos API", () => {
   it("returns the validated sample graph with defensive headers", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({ method: "GET", url: "/api/graph", headers: trustedHeaders });
 
@@ -34,7 +38,7 @@ describe("Eidos API", () => {
     const directory = mkdtempSync(join(tmpdir(), "eidos-api-"));
     temporaryDirectories.push(directory);
     const databasePath = join(directory, "eidos.sqlite");
-    const server = buildServer({ databasePath });
+    const server = buildLegacyServer({ databasePath });
     servers.push(server);
 
     const response = await server.inject({ method: "GET", url: "/api/graph", headers: trustedHeaders });
@@ -52,7 +56,7 @@ describe("Eidos API", () => {
 
   it("exports a deterministic versioned graph snapshot", async () => {
     const generatedAt = "2026-09-06T18:30:00.000Z";
-    const server = buildServer({ now: () => generatedAt });
+    const server = buildLegacyServer({ now: () => generatedAt });
     servers.push(server);
 
     const response = await server.inject({
@@ -70,7 +74,7 @@ describe("Eidos API", () => {
   });
 
   it("exports a consultant-facing summary without a compliance claim", async () => {
-    const server = buildServer({ now: () => "2026-09-06T18:30:00.000Z" });
+    const server = buildLegacyServer({ now: () => "2026-09-06T18:30:00.000Z" });
     servers.push(server);
 
     const response = await server.inject({
@@ -86,7 +90,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects every request carrying an untrusted host", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "GET",
@@ -98,7 +102,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects safe requests carrying an untrusted origin", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "GET",
@@ -110,7 +114,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects state-changing requests from an untrusted origin", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "POST",
@@ -123,7 +127,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects unsafe requests without an approved browser origin", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "POST",
@@ -136,7 +140,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects non-JSON proposal requests with unsupported-media-type", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "POST",
@@ -153,7 +157,7 @@ describe("Eidos API", () => {
   });
 
   it("rejects unexpected proposal fields", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "POST",
@@ -166,7 +170,7 @@ describe("Eidos API", () => {
   });
 
   it("labels analysis output as a proposal that cannot verify state", async () => {
-    const server = buildServer();
+    const server = buildLegacyServer();
     servers.push(server);
     const response = await server.inject({
       method: "POST",

@@ -1,6 +1,9 @@
 # Eidos API Contracts
 
-**Status:** Normative HTTP contract for API v1
+> [!IMPORTANT]
+> **Historical assessment-prototype API plan.** The catalog-first local MVP exposes `GET /api/catalog`, `GET /api/catalog/compare`, and `GET /api/catalog/:slug`. Assessment routes are disabled by default and exist only behind an explicit test/developer compatibility option. The assessment-oriented `/api/v1` design below is not the current product contract.
+
+**Status:** Historical prototype plan; superseded by the implemented catalog routes
 **Base URL:** `http://127.0.0.1:{port}/api/v1`
 **Media type:** `application/json; charset=utf-8`
 **Related documents:** [ARCHITECTURE.md](./ARCHITECTURE.md), [DATA_MODEL.md](./DATA_MODEL.md)

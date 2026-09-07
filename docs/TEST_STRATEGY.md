@@ -1,7 +1,10 @@
 # Eidos First Vertical Slice Test Strategy
 
 **Owner:** Principal QA Automation Engineer
-**Status:** Proposed release-gate contract
+> [!IMPORTANT]
+> **Historical assessment-prototype strategy.** Current catalog acceptance is defined in [ACCEPTANCE.md](./ACCEPTANCE.md) and exercised by catalog domain, API, and view-model tests plus browser verification. The graph assertions below remain regression coverage for temporary compatibility code, not proof of current product fit.
+
+**Status:** Historical prototype release strategy
 **Scope:** First complete vertical slice
 **Related documents:** `README.md`, `docs/VISUAL_REFERENCE.md`, `docs/TEAM.json`, `docs/ACCEPTANCE.md`
 

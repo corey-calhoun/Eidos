@@ -1,6 +1,9 @@
 # Eidos Visual Grammar Contract
 
-**Status:** Normative semantic-visual contract
+> [!IMPORTANT]
+> **Historical graph-workspace grammar.** It applies only to the preserved assessment prototype. It does not define the catalog-first product or imply that a graph is Eidos's primary interface.
+
+**Status:** Historical prototype contract; optional map reference only
 **Purpose:** Define what every graph mark means for one client web-application assurance assessment.
 **Companion contracts:** [Design System](./DESIGN_SYSTEM.md), [Motion Specification](./MOTION_SPECIFICATION.md)
 

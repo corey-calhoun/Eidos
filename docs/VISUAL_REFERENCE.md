@@ -1,5 +1,8 @@
 # Visual and Interaction Reference
 
+> [!IMPORTANT]
+> **Historical graph-workspace reference.** This source informed the preserved assessment prototype only. The current Eidos front door is the catalog experience defined in [PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md); any future graph is optional and secondary.
+
 ## Reference
 
 - Source: https://cdn.dribbble.com/userupload/47771395/file/2176ba1ef89e12c95fdfcf99e615f302.mp4

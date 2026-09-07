@@ -2,11 +2,13 @@
 
 ## Mission
 
-Eidos is a local-first Security Assurance Graph for an independent security consultant assessing one client web application at a time. Preserve the traceable chain:
+Eidos is a local-first, catalog-first cybersecurity governance knowledge library: a searchable Rolodex of frameworks, regulations, standards, control catalogs, policies, controls, and GRC concepts.
 
-`business objective → application/asset/dependency → threat or vulnerability → risk → control → validation → evidence → requirement/framework`
+The primary user journey is:
 
-The graph is the primary reasoning surface. Changes must preserve orientation, provenance, deterministic assurance, and evidence-backed reporting.
+`search or browse → understand a reference record → inspect authoritative source/version/applicability → follow related materials → optionally compare or visualize relationships`
+
+The catalog and record detail experience are the primary reasoning surfaces. A relationship graph may support exploration, but it must never displace the searchable library as the product front door. Eidos explains the cybersecurity governance landscape; Checkpoint separately assesses an organization's readiness against that landscape.
 
 ## Working Context
 
@@ -18,22 +20,22 @@ The graph is the primary reasoning surface. Changes must preserve orientation, p
 ## Architecture
 
 - Strict TypeScript modular monolith.
-- React 19 and Vite for the local graph client.
-- Cytoscape.js for graph rendering.
+- React 19 and Vite for the local catalog client.
+- Cytoscape.js remains installed only for the preserved historical graph implementation and a possible future optional relationship map.
 - Fastify for the loopback API.
 - Zod for strict trust-boundary validation.
-- Node `node:sqlite` for local persistence.
+- The current built-in catalog is deterministic and read-only; normal catalog startup does not initialize SQLite. Node `node:sqlite` remains in the preserved historical implementation.
 - Vitest for automated verification.
 - The runtime remains local-only unless Corey explicitly approves production work.
 
 ## Trust and Security Invariants
 
-1. Preserve the trust flow: observed evidence → normalized entities/relationships → deterministic graph → optional AI explanation or candidate analysis.
-2. Never represent AI-inferred evidence, relationships, or assurance as authoritative.
-3. Authoritative non-unknown node assurance requires accepted human or deterministic provenance.
-4. Verified relationships require accepted human or deterministic provenance, an actor, and a verification timestamp.
-5. Unknown fields, dangling edges, unsupported relationship endpoint pairs, malformed persisted data, and incompatible migration metadata must fail closed.
-6. Assurance is deterministic. Do not replace explicit rules with questionnaires, model inference, or opaque scores.
+1. Preserve the trust flow: authoritative source material → normalized catalog records → explicit relationships → optional AI explanation or candidate analysis.
+2. Never represent AI-inferred content, relationships, or compliance conclusions as authoritative.
+3. Publisher records require an official source, citation, paraphrase marker, copyright treatment, and editorial review metadata. Eidos-authored material must remain visibly editorial.
+4. Every relationship requires a plain-language rationale, review metadata, and explicit authority. Verified relationships require authoritative publisher provenance and publisher-classified endpoints.
+5. Unknown fields, duplicate identifiers, dangling relationships, malformed catalog data, and incompatible persisted historical data must fail closed.
+6. Eidos explains governance knowledge; it does not calculate or assert organizational compliance or readiness.
 7. Preserve loopback binding, Host/Origin restrictions, defensive response headers, body limits, and non-authoritative AI responses.
 8. Never commit client assessment data, evidence, exports, database files or sidecars, environment files, credentials, or secrets.
 9. Do not deploy, expose ports to a LAN, proxy, tunnel, or publish Eidos without explicit approval and a separate production security review.
@@ -84,7 +86,7 @@ npm run start:api
 npm run start:web
 ```
 
-Then verify health, graph retrieval, security rejection paths, the baseline graph, and a deep-linked detail drawer. Record residual risks honestly. Passing tests do not authorize production deployment.
+Then verify health, catalog retrieval, security rejection paths, search/browse, direct and invalid deep links, record-detail focus/restoration, related-record browser history, visible relationship rationale, and comparison. Record residual risks honestly. Passing tests do not authorize production deployment.
 
 ## Documentation
 

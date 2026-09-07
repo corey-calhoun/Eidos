@@ -1,6 +1,9 @@
 # Eidos Motion Specification
 
-**Status:** Normative interaction-motion contract
+> [!IMPORTANT]
+> **Historical graph-workspace motion contract.** The current catalog UI follows ordinary reduced-motion-safe page, drawer, and comparison behavior. These camera/node rules are retained only for a possible future optional relationship map.
+
+**Status:** Historical prototype contract; optional map reference only
 **Purpose:** Preserve spatial orientation and communicate state changes without making motion an authority signal.
 **Companion contracts:** [Design System](./DESIGN_SYSTEM.md), [Visual Grammar](./VISUAL_GRAMMAR.md)
 
