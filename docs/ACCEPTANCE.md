@@ -57,7 +57,7 @@ Pass when automated tests show that:
 - unknown fields, unsupported material types, malformed dates or URLs, duplicate IDs, and dangling relationship endpoints fail closed;
 - direct quotations, paraphrases, and editorial explanations have distinguishable data markers;
 - a published record cannot treat AI output as authoritative source material.
-- publisher authority is accepted only when the official URL belongs to a registered host for the stated issuer, and verified relationship provenance belongs to a registered host for at least one endpoint publisher.
+- publisher authority is accepted only when the official URL belongs to a registered host for the stated issuer, and official relationship provenance belongs to a registered host for at least one endpoint publisher.
 
 ### AC-02 — Relationship authority and provenance
 

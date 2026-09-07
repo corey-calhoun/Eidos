@@ -125,12 +125,17 @@ const relationshipBase = {
 export const catalogRelationshipSchema = z.discriminatedUnion("status", [
   z.object({
     ...relationshipBase,
-    status: z.literal("verified"),
+    status: z.literal("official"),
     provenance: authoritativeProvenanceSchema,
   }).strict(),
   z.object({
     ...relationshipBase,
-    status: z.literal("explanatory"),
+    status: z.literal("eidos_curated"),
+    provenance: nonAuthoritativeProvenanceSchema,
+  }).strict(),
+  z.object({
+    ...relationshipBase,
+    status: z.literal("unverified"),
     provenance: nonAuthoritativeProvenanceSchema,
   }).strict(),
 ]);
@@ -161,21 +166,21 @@ export const catalogSchema = z.object({
     if (relationship.source === relationship.target) {
       context.addIssue({ code: "custom", path: ["relationships", index], message: "Relationships cannot be self-referential." });
     }
-    if (relationship.status === "verified") {
+    if (relationship.status === "official") {
       const source = recordsById.get(relationship.source);
       const target = recordsById.get(relationship.target);
       if (source?.contentAuthority !== "publisher" || target?.contentAuthority !== "publisher") {
         context.addIssue({
           code: "custom",
           path: ["relationships", index],
-          message: "Verified relationships require publisher-classified endpoints.",
+          message: "Official relationships require publisher-classified endpoints.",
         });
       } else if (!isRegisteredPublisherUrl(source.issuer, relationship.provenance.sourceUrl)
         && !isRegisteredPublisherUrl(target.issuer, relationship.provenance.sourceUrl)) {
         context.addIssue({
           code: "custom",
           path: ["relationships", index, "provenance", "sourceUrl"],
-          message: "Verified relationship provenance must use a registered endpoint publisher host.",
+          message: "Official relationship provenance must use a registered endpoint publisher host.",
         });
       }
     }
@@ -311,39 +316,39 @@ const rawSampleCatalog = {
   ],
   relationships: [
     {
-      id: "relationship_nist_contains_governance", source: "framework_nist_csf_2_0", target: "concept_cybersecurity_governance", type: "contains", status: "verified",
+      id: "relationship_nist_contains_governance", source: "framework_nist_csf_2_0", target: "concept_cybersecurity_governance", type: "contains", status: "official",
       provenance: { authority: "authoritative", sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf", sourceLabel: "NIST CSF 2.0 publication — GOVERN Function", rationale: "NIST CSF 2.0 defines GOVERN as one of the framework's six Functions." },
     },
     {
-      id: "relationship_nist_iso_context", source: "framework_nist_csf_2_0", target: "standard_iso_27001_2022", type: "related_to", status: "explanatory",
+      id: "relationship_nist_iso_context", source: "framework_nist_csf_2_0", target: "standard_iso_27001_2022", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "Both are widely used risk-based cybersecurity references; this is not an official control mapping." },
     },
     {
-      id: "relationship_nist_cis_context", source: "framework_nist_csf_2_0", target: "catalog_cis_controls_v8_1", type: "related_to", status: "explanatory",
+      id: "relationship_nist_cis_context", source: "framework_nist_csf_2_0", target: "catalog_cis_controls_v8_1", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "The outcome-oriented framework and prioritized safeguard catalog are often considered together; no exact mapping is asserted." },
     },
     {
-      id: "relationship_nist_800_53_context", source: "framework_nist_csf_2_0", target: "catalog_nist_sp_800_53_rev_5", type: "related_to", status: "explanatory",
+      id: "relationship_nist_800_53_context", source: "framework_nist_csf_2_0", target: "catalog_nist_sp_800_53_rev_5", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "NIST CSF describes cybersecurity outcomes while SP 800-53 provides a control catalog; this relationship is orientation, not an official crosswalk or compliance mapping." },
     },
     {
-      id: "relationship_access_policy_mfa", source: "policy_access_control", target: "control_multi_factor_authentication", type: "implements", status: "explanatory",
+      id: "relationship_access_policy_mfa", source: "policy_access_control", target: "control_multi_factor_authentication", type: "implements", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos sample-library rationale", rationale: "The sample MFA control illustrates one possible implementation of the sample policy; organizations must tailor it." },
     },
     {
-      id: "relationship_ir_policy_exercise", source: "policy_incident_response", target: "control_security_incident_exercises", type: "implements", status: "explanatory",
+      id: "relationship_ir_policy_exercise", source: "policy_incident_response", target: "control_security_incident_exercises", type: "implements", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos sample-library rationale", rationale: "Exercises are one possible means of implementing and assuring the sample incident-response policy." },
     },
     {
-      id: "relationship_hipaa_risk_context", source: "regulation_hipaa_security_rule", target: "concept_risk_based_approach", type: "related_to", status: "explanatory",
+      id: "relationship_hipaa_risk_context", source: "regulation_hipaa_security_rule", target: "concept_risk_based_approach", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "The concept helps explain contextual implementation but does not claim an exact regulatory mapping." },
     },
     {
-      id: "relationship_gdpr_governance_context", source: "regulation_gdpr", target: "concept_cybersecurity_governance", type: "related_to", status: "explanatory",
+      id: "relationship_gdpr_governance_context", source: "regulation_gdpr", target: "concept_cybersecurity_governance", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "Governance is relevant to accountability and security, but this relationship is explanatory rather than legal guidance." },
     },
     {
-      id: "relationship_pci_mfa_context", source: "standard_pci_dss_v4_0_1", target: "control_multi_factor_authentication", type: "related_to", status: "explanatory",
+      id: "relationship_pci_mfa_context", source: "standard_pci_dss_v4_0_1", target: "control_multi_factor_authentication", type: "related_to", status: "eidos_curated",
       provenance: { authority: "non_authoritative", sourceLabel: "Eidos editorial context", rationale: "MFA is relevant to payment security; no requirement-level or control-to-control mapping is asserted here." },
     },
   ],
@@ -487,7 +492,11 @@ export function catalogSummary() {
     totalRelationships: catalog.relationships.length,
     byType,
     byStatus,
-    verifiedRelationships: catalog.relationships.filter((relationship) => relationship.status === "verified").length,
-    explanatoryRelationships: catalog.relationships.filter((relationship) => relationship.status === "explanatory").length,
+    officialRelationships: catalog.relationships.filter((relationship) => relationship.status === "official").length,
+    eidosCuratedRelationships: catalog.relationships.filter((relationship) => relationship.status === "eidos_curated").length,
+    unverifiedRelationships: catalog.relationships.filter((relationship) => relationship.status === "unverified").length,
+    // Compatibility aliases for existing local clients.
+    verifiedRelationships: catalog.relationships.filter((relationship) => relationship.status === "official").length,
+    explanatoryRelationships: catalog.relationships.filter((relationship) => relationship.status === "eidos_curated").length,
   };
 }

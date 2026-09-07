@@ -15,7 +15,7 @@ Eidos explains the knowledge landscape. It does not assess an organization's rea
 - Per-result explanations distinguish direct industry tags from broadly useful cross-industry references.
 - Reference cards and detailed record inspection.
 - Explicit issuer, version/status, jurisdiction, applicability, and official-source metadata where applicable.
-- Related-material navigation that distinguishes publisher-backed relationships from Eidos editorial context.
+- Related-material navigation that distinguishes official publisher relationships, Eidos-curated context, and unverified candidates.
 - Side-by-side comparison for selected governance references.
 - Strict Zod validation that rejects malformed records, duplicate identifiers/slugs, dangling relationships, and unsupported fields.
 - Loopback-only Fastify API with strict query validation and existing defensive Host, Origin, response-header, and body-size controls.
@@ -114,7 +114,7 @@ Passing these gates does not authorize production deployment.
 - Display version, status, jurisdiction, applicability, and unknowns explicitly rather than guessing.
 - Label Eidos-authored policy/control examples and editorial relationships as non-authoritative.
 - Do not call a relationship official unless a publisher source supports it.
-- Publisher-classified records and verified relationship provenance fail closed unless their HTTPS host is registered to the stated issuer or an endpoint publisher.
+- Publisher-classified records and official relationship provenance fail closed unless their HTTPS host is registered to the stated issuer or an endpoint publisher.
 - Industry tags and comma-separated industry API filters reject unsupported, duplicate, and empty values.
 - AI suggestions, if added later, cannot publish or verify records or mappings.
 - Link to restricted standards rather than reproducing unlicensed text.

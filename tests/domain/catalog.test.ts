@@ -71,7 +71,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: concept.id,
         type: "contains",
-        status: "verified",
+        status: "official",
         provenance: {
           authority: "authoritative",
           sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
@@ -118,7 +118,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: "missing_record",
         type: "related_to",
-        status: "explanatory",
+        status: "eidos_curated",
         provenance: {
           authority: "non_authoritative",
           sourceLabel: "Eidos editorial note",
@@ -130,7 +130,7 @@ describe("catalog validation", () => {
     })).toThrow(/existing records/i);
   });
 
-  it("requires authoritative evidence for verified mappings", () => {
+  it("requires authoritative evidence for official mappings", () => {
     expect(() => validateCatalog({
       records: [record, concept],
       relationships: [{
@@ -138,7 +138,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: concept.id,
         type: "maps_to",
-        status: "verified",
+        status: "official",
         provenance: {
           authority: "non_authoritative",
           sourceLabel: "Editorial inference",
@@ -150,7 +150,7 @@ describe("catalog validation", () => {
     })).toThrow();
   });
 
-  it("rejects verified relationships unless both endpoints are publisher records", () => {
+  it("rejects official relationships unless both endpoints are publisher records", () => {
     expect(() => validateCatalog({
       records: [record, concept],
       relationships: [{
@@ -158,7 +158,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: concept.id,
         type: "contains",
-        status: "verified",
+        status: "official",
         provenance: {
           authority: "authoritative",
           sourceUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
@@ -171,7 +171,7 @@ describe("catalog validation", () => {
     })).toThrow(/publisher-classified endpoints/i);
   });
 
-  it("requires explanatory relationships to be explicitly non-authoritative", () => {
+  it("requires Eidos-curated relationships to be explicitly non-authoritative", () => {
     expect(() => validateCatalog({
       records: [record, concept],
       relationships: [{
@@ -179,7 +179,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: concept.id,
         type: "related_to",
-        status: "explanatory",
+        status: "eidos_curated",
         provenance: {
           authority: "authoritative",
           sourceUrl: "https://example.test/mapping",
@@ -191,7 +191,46 @@ describe("catalog validation", () => {
     })).toThrow();
   });
 
-  it("rejects verified relationship provenance from an unregistered endpoint publisher host", () => {
+  it("accepts explicitly unverified relationships only as non-authoritative candidates", () => {
+    expect(() => validateCatalog({
+      records: [record, concept],
+      relationships: [{
+        id: "relationship_candidate",
+        source: record.id,
+        target: concept.id,
+        type: "related_to",
+        status: "unverified",
+        provenance: {
+          authority: "non_authoritative",
+          sourceLabel: "Unverified editorial candidate",
+          rationale: "This candidate remains unverified and is not an established relationship.",
+          reviewedAt: "2026-09-06",
+          reviewedBy: "Eidos editorial review",
+        },
+      }],
+    })).not.toThrow();
+
+    expect(() => validateCatalog({
+      records: [record, publisherConcept],
+      relationships: [{
+        id: "relationship_candidate_with_authority",
+        source: record.id,
+        target: publisherConcept.id,
+        type: "related_to",
+        status: "unverified",
+        provenance: {
+          authority: "authoritative",
+          sourceUrl: "https://www.nist.gov/cyberframework",
+          sourceLabel: "Misclassified candidate",
+          rationale: "An unverified candidate cannot claim authoritative provenance.",
+          reviewedAt: "2026-09-06",
+          reviewedBy: "Eidos editorial review",
+        },
+      }],
+    })).toThrow();
+  });
+
+  it("rejects official relationship provenance from an unregistered endpoint publisher host", () => {
     expect(() => validateCatalog({
       records: [record, publisherConcept],
       relationships: [{
@@ -199,7 +238,7 @@ describe("catalog validation", () => {
         source: record.id,
         target: publisherConcept.id,
         type: "maps_to",
-        status: "verified",
+        status: "official",
         provenance: {
           authority: "authoritative",
           sourceUrl: "https://attacker.invalid/fake-mapping",
@@ -245,7 +284,7 @@ describe("curated catalog", () => {
       && item.provenance.reviewedBy.length > 0)).toBe(true);
     expect(catalog.relationships.every((item) => item.provenance.rationale.length > 0)).toBe(true);
     const byId = new Map(catalog.records.map((item) => [item.id, item]));
-    expect(catalog.relationships.filter((item) => item.status === "verified").every((item) =>
+    expect(catalog.relationships.filter((item) => item.status === "official").every((item) =>
       byId.get(item.source)?.contentAuthority === "publisher"
       && byId.get(item.target)?.contentAuthority === "publisher")).toBe(true);
   });
@@ -278,7 +317,7 @@ describe("curated catalog", () => {
       industries: ["government"],
     });
     expect(getRelatedRecords(nistControls!.id).some(({ relationship }) =>
-      relationship.status === "explanatory" && relationship.provenance.rationale.length > 0)).toBe(true);
+      relationship.status === "eidos_curated" && relationship.provenance.rationale.length > 0)).toBe(true);
   });
 
   it("gets records by slug without exposing mutable catalog state", () => {

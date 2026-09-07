@@ -1,4 +1,4 @@
-import { catalogIndustries, type CatalogIndustry, type CatalogRecord } from "../domain/catalog.js";
+import { catalogIndustries, type CatalogIndustry, type CatalogRecord, type CatalogRelationship } from "../domain/catalog.js";
 
 export type CatalogViewRecord = CatalogRecord;
 
@@ -47,6 +47,12 @@ const INDUSTRY_LABELS: Readonly<Record<CatalogIndustry, string>> = {
 
 export function formatIndustry(industry: CatalogIndustry): string {
   return INDUSTRY_LABELS[industry];
+}
+
+export function formatRelationshipAuthority(status: CatalogRelationship["status"]): string {
+  if (status === "official") return "Official publisher relationship";
+  if (status === "eidos_curated") return "Eidos-curated context";
+  return "Unverified candidate — not established";
 }
 
 export function formatCatalogType(type: string, plural = false): string {

@@ -3,6 +3,7 @@ import {
   buildCatalogFacets,
   filterCatalog,
   formatCatalogType,
+  formatRelationshipAuthority,
   getIndustryRelevance,
   getRecordDialogFocusAction,
   toggleComparison,
@@ -105,5 +106,11 @@ describe("catalog view model", () => {
       label: expect.stringContaining("Eidos-tagged"),
     });
     expect(getIndustryRelevance(records[2]!, new Set(["healthcare"]))).toMatchObject({ kind: "cross_industry" });
+  });
+
+  it("labels relationship authority without presenting unverified candidates as established", () => {
+    expect(formatRelationshipAuthority("official")).toBe("Official publisher relationship");
+    expect(formatRelationshipAuthority("eidos_curated")).toBe("Eidos-curated context");
+    expect(formatRelationshipAuthority("unverified")).toBe("Unverified candidate — not established");
   });
 });

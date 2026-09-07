@@ -12,6 +12,7 @@ import {
   filterCatalog,
   formatCatalogType,
   formatIndustry,
+  formatRelationshipAuthority,
   getIndustryRelevance,
   getRecordDialogFocusAction,
   humanize,
@@ -337,7 +338,7 @@ function App() {
             <section className="tag-section"><h3>Topics</h3><div>{[...selectedRecord.domains, ...selectedRecord.tags].map((tag) => <span key={tag}>{tag}</span>)}</div></section>
             <section className="related-section"><h3>Related materials</h3>{related.length === 0 ? <p>No reviewed relationships yet.</p> : related.map(({ record, relationship }) => (
               <button key={relationship.id} onClick={() => openRecord(record)}>
-                <span><strong>{record.name}</strong><small>{humanize(relationship.type)} · {relationship.status === "verified" ? "Publisher-backed" : "Eidos editorial context"}</small><small>{relationship.provenance.sourceLabel} · reviewed {relationship.provenance.reviewedAt}</small><small>{relationship.provenance.rationale}</small></span><b aria-hidden="true">→</b>
+                <span><strong>{record.name}</strong><small>{humanize(relationship.type)} · {formatRelationshipAuthority(relationship.status)}</small><small>{relationship.provenance.sourceLabel} · reviewed {relationship.provenance.reviewedAt}</small><small>{relationship.provenance.rationale}</small></span><b aria-hidden="true">→</b>
               </button>
             ))}</section>
           </aside>
