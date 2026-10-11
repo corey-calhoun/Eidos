@@ -8,7 +8,7 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 
 ## Current catalog-first MVP
 
-- Built-in, deterministic curated core with 77 records across 12 publisher-aligned material types.
+- Built-in, deterministic curated core with 79 records across 12 publisher-aligned material types.
 - Universal local search across names, acronyms, aliases, stable IDs, slugs, descriptions, publishers, applicability, domains, and tags, with deterministic relevance ordering and visible match reasons.
 - Browse-by-type directories plus status, topic, and industry filters with contextual counts and independently removable filter chips.
 - Centralized desktop workspace with a compact filter rail, contained result scrolling, and a centered record dialog so the primary journey stays within one viewport.

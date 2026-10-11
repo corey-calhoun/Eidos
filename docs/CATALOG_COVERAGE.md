@@ -4,9 +4,9 @@
 
 **Coverage target:** At least 75 validated records, followed by source-reviewed expansion batches
 
-**Last review:** 2026-09-07
+**Last review:** 2026-10-11
 
-**Current core:** 77 validated records and 57 explained relationships
+**Current core:** 79 validated records and 59 explained relationships
 
 ## Purpose
 

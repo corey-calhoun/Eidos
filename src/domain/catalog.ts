@@ -435,10 +435,10 @@ const rawSampleCatalog = {
     {
       id: "regulation_hipaa_security_rule", slug: "hipaa-security-rule", name: "HIPAA Security Rule", acronym: "HIPAA Security Rule", type: "regulation",
       summary: "U.S. requirements for safeguarding electronic protected health information.",
-      description: "The Security Rule requires covered entities and business associates to apply administrative, physical, and technical safeguards to electronic protected health information.",
+      description: "The Security Rule requires covered entities and business associates to apply administrative, physical, and technical safeguards to electronic protected health information. It is located at 45 CFR Part 160 and Subparts A and C of Part 164. On January 6, 2025 HHS published a Notice of Proposed Rulemaking titled 'HIPAA Security Rule to Strengthen the Cybersecurity of Electronic Protected Health Information' (90 FR 898, RIN 0945-AA22) proposing substantial updates to the Security Rule; covered entities and business associates should monitor the final-rule status and assess implications for their security programs.",
       issuer: "U.S. Department of Health and Human Services", jurisdictions: ["United States"], industries: ["healthcare"],
-      applicability: "HIPAA covered entities and business associates that create, receive, maintain, or transmit electronic protected health information.", status: "current",
-      officialUrl: "https://www.hhs.gov/hipaa/for-professionals/security/index.html", domains: ["privacy", "information security", "risk management"], tags: ["ePHI", "safeguards", "health data"],
+      applicability: "HIPAA covered entities and business associates that create, receive, maintain, or transmit electronic protected health information.", status: "current", version: "45 CFR Part 160 and Part 164 (Subparts A and C); 2025 NPRM pending", publicationDate: "2003-02-20",
+      officialUrl: "https://www.hhs.gov/hipaa/for-professionals/security/index.html", domains: ["privacy", "information security", "risk management"], tags: ["ePHI", "safeguards", "health data", "2025 proposed rule"],
     },
     {
       id: "regulation_gdpr", slug: "gdpr", name: "General Data Protection Regulation", acronym: "GDPR", type: "regulation",
@@ -544,7 +544,7 @@ const rawSampleCatalog = {
   ],
 } as const;
 
-const editorialReview = { reviewedAt: "2026-09-07", reviewedBy: "Rosco — Eidos editorial reviewer" } as const;
+const editorialReview = { reviewedAt: "2026-10-11", reviewedBy: "Rosco — Eidos editorial reviewer" } as const;
 
 function buildSourceCitation(
   record: (typeof rawSampleCatalog.records)[number],
