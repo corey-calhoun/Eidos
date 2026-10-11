@@ -173,6 +173,16 @@ export function humanize(value: string): string {
   return value.replaceAll("_", " ").replace(/^./, (letter) => letter.toLocaleUpperCase());
 }
 
+const READING_DEPTH_LABELS: Record<string, string> = {
+  introductory: "Introductory",
+  practitioner: "Practitioner",
+  specialist: "Specialist",
+};
+
+export function formatReadingDepth(depth: "introductory" | "practitioner" | "specialist"): string {
+  return READING_DEPTH_LABELS[depth] ?? humanize(depth);
+}
+
 export function getRecordDialogFocusAction(
   wasOpen: boolean,
   isOpen: boolean,

@@ -54,6 +54,9 @@ type PolicySeed = {
   domains: string[];
   tags: string[];
   industries?: CatalogIndustry[];
+  plainEnglishSummary?: string;
+  readingDepth?: "introductory" | "practitioner" | "specialist";
+  estimatedMinutes?: number;
   playbook: PolicyPlaybookContent;
 };
 
@@ -61,7 +64,7 @@ const editorialMetadata = {
   contentAuthority: "eidos_editorial" as const,
   contentMarker: "editorial" as const,
   sourceCitation: "Eidos policy playbook editorial guidance",
-  reviewedAt: "2026-09-07",
+  reviewedAt: "2026-10-11",
   reviewedBy: "Rosco — Eidos editorial reviewer",
 };
 
@@ -82,6 +85,9 @@ function policy(seed: PolicySeed) {
     status: "current" as const,
     domains: seed.domains,
     tags: seed.tags,
+    ...(seed.plainEnglishSummary === undefined ? {} : { plainEnglishSummary: seed.plainEnglishSummary }),
+    ...(seed.readingDepth === undefined ? {} : { readingDepth: seed.readingDepth }),
+    ...(seed.estimatedMinutes === undefined ? {} : { estimatedMinutes: seed.estimatedMinutes }),
     playbook: { ...editorialMetadata, ...seed.playbook },
   };
 }
@@ -96,6 +102,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations establishing or refreshing accountability and oversight for information security decisions.",
     domains: ["information security governance", "accountability", "oversight"],
     tags: ["policy hierarchy", "roles", "exceptions", "management review"],
+    plainEnglishSummary: "Defines who is accountable for security, who makes decisions, how policies fit together, how exceptions are handled, and how leadership oversees the security program.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 12,
     playbook: {
       outcome: "Security priorities, authorities, exceptions, and oversight are assigned to accountable roles and revisited as organizational risk and operations change.",
       decisions: [
@@ -126,6 +135,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations seeking a repeatable basis for cybersecurity risk decisions across systems, suppliers, data, and business activities.",
     domains: ["cybersecurity risk management", "governance", "assurance"],
     tags: ["risk criteria", "risk treatment", "risk acceptance", "monitoring"],
+    plainEnglishSummary: "Establishes a consistent way to identify, prioritize, treat, and monitor cybersecurity risks — including who has authority to accept risk.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 10,
     playbook: {
       outcome: "Cybersecurity risks are described consistently, assigned to business owners, treated within stated tolerances, and escalated when exposure or uncertainty exceeds authority.",
       decisions: [
@@ -156,6 +168,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations managing devices, infrastructure, applications, cloud resources, services, software, or information that require accountable stewardship.",
     domains: ["asset management", "inventory", "governance"],
     tags: ["asset owner", "discovery", "lifecycle", "reconciliation"],
+    plainEnglishSummary: "Sets expectations for who owns technology and data assets, how they're inventoried, and how that inventory stays current and trustworthy.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 8,
     playbook: {
       outcome: "In-scope assets have accountable owners and enough current lifecycle, location, dependency, and sensitivity context to support security decisions.",
       decisions: [
@@ -186,6 +201,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations that create, receive, store, use, share, archive, or dispose of business, customer, workforce, regulated, or confidential information.",
     domains: ["data lifecycle", "information classification", "records management"],
     tags: ["handling", "retention", "disposal", "data transfer"],
+    plainEnglishSummary: "Defines how data is classified and handled from creation through use, sharing, retention, and defensible disposal.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 9,
     playbook: {
       outcome: "Information receives handling, access, transfer, retention, and disposal treatment proportionate to its defined sensitivity, business value, and confirmed obligations.",
       decisions: [
@@ -212,10 +230,13 @@ export const additionalPolicyRecords = [
     slug: "privacy-personal-data-protection-policy",
     name: "Privacy and Personal Data Protection Policy",
     summary: "A reusable policy pattern for governing personal-data processing, individual rights, transparency, sharing, and privacy risk.",
-    description: "This sample policy establishes privacy roles and lifecycle expectations while requiring qualified stakeholders to determine actual legal, contractual, and jurisdictional obligations.",
+    description: "Governs personal-data processing through documented purposes, accountable owners, proportionate safeguards, transparent notices, workable individual-request handling, controlled sharing, and periodic review of new and high-risk processing activities.",
     applicability: "Organizations processing personal data about customers, users, workforce members, applicants, partners, or other identifiable individuals.",
     domains: ["privacy", "personal data protection", "data governance"],
     tags: ["processing purpose", "individual rights", "privacy review", "data sharing"],
+    plainEnglishSummary: "Governs personal-data processing through documented purposes, accountable owners, proportionate safeguards, transparent notices, individual-request handling, controlled sharing, and periodic review.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 12,
     playbook: {
       outcome: "Personal-data processing has a documented purpose, accountable owner, proportionate safeguards, transparent handling, and a workable path for individual requests and concerns.",
       decisions: [
@@ -246,6 +267,9 @@ export const additionalPolicyRecords = [
     applicability: "Workforce members, contractors, interns, and other authorized users of organizational technology or information.",
     domains: ["security awareness", "acceptable use", "workforce security"],
     tags: ["training", "phishing", "user conduct", "reporting"],
+    plainEnglishSummary: "Combines role-aware security learning with understandable rules for acceptable use of organizational technology, accounts, and information.",
+    readingDepth: "introductory",
+    estimatedMinutes: 8,
     playbook: {
       outcome: "People understand permitted technology use, receive learning relevant to their role and risk, and can promptly report mistakes, suspicious activity, and policy concerns without ambiguity.",
       decisions: [
@@ -276,6 +300,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations operating or depending on supported hardware, software, applications, cloud resources, containers, or network devices.",
     domains: ["vulnerability management", "patch management", "security operations"],
     tags: ["remediation", "prioritization", "scanning", "exceptions"],
+    plainEnglishSummary: "Coordinates how vulnerabilities are discovered, prioritized, remediated or mitigated, and verified — including exceptions and emergency change paths.",
+    readingDepth: "specialist",
+    estimatedMinutes: 10,
     playbook: {
       outcome: "Known vulnerabilities are evaluated using exploitability, exposure, asset importance, and business impact, then remediated or explicitly mitigated within accountable timeframes.",
       decisions: [
@@ -306,6 +333,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations managing endpoints, servers, network devices, applications, infrastructure as code, cloud services, or security tooling.",
     domains: ["secure configuration", "change control", "configuration management"],
     tags: ["baseline", "hardening", "drift", "rollback"],
+    plainEnglishSummary: "Links approved configuration baselines with change assessment, authorization, testing, deployment, rollback, drift handling, and emergency review.",
+    readingDepth: "specialist",
+    estimatedMinutes: 9,
     playbook: {
       outcome: "Technology begins from an approved, risk-informed baseline and changes through proportionate review, testing, authorization, rollback planning, and post-change validation.",
       decisions: [
@@ -336,6 +366,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations relying on technology systems, applications, cloud services, networks, identities, or suppliers whose events support security and operational decisions.",
     domains: ["security monitoring", "logging", "detection"],
     tags: ["telemetry", "alerting", "triage", "log integrity"],
+    plainEnglishSummary: "Defines what gets logged, how logs are protected and retained, who triages alerts, and how monitoring stays effective.",
+    readingDepth: "specialist",
+    estimatedMinutes: 10,
     playbook: {
       outcome: "Security-relevant activity produces trustworthy, appropriately protected telemetry, and actionable detections reach accountable responders through tested escalation paths.",
       decisions: [
@@ -366,6 +399,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations acquiring technology, software, data processing, professional services, managed services, or components from external parties.",
     domains: ["third-party security", "supply chain security", "vendor risk"],
     tags: ["due diligence", "contracting", "supplier monitoring", "concentration risk"],
+    plainEnglishSummary: "Covers risk tiering, due diligence, contracting, access, monitoring, incident coordination, concentration, change, and secure exit for external-party relationships.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 12,
     playbook: {
       outcome: "External dependencies receive security scrutiny and oversight proportionate to their access, data, service criticality, substitutability, and potential business impact.",
       decisions: [
@@ -397,6 +433,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations whose important products, services, operations, or records depend on technology availability and recoverability.",
     domains: ["technology resilience", "backup", "disaster recovery"],
     tags: ["recovery objectives", "restoration testing", "failover", "dependencies"],
+    plainEnglishSummary: "Connects business impact, recovery objectives, backup design, restoration testing, alternate operations, crisis authority, and improvement.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 11,
     playbook: {
       outcome: "Critical technology and data can be restored to an approved point and service level through tested arrangements with clear authority, dependencies, and fallback decisions.",
       decisions: [
@@ -428,6 +467,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations building, configuring, acquiring, integrating, or operating applications, APIs, scripts, infrastructure code, or software-enabled products.",
     domains: ["secure development", "application security", "software supply chain"],
     tags: ["secure SDLC", "threat modeling", "code review", "dependency security"],
+    plainEnglishSummary: "Establishes proportionate application risk classification, security requirements, design review, code and dependency controls, testing, release criteria, vulnerability handling, and accountable exceptions.",
+    readingDepth: "specialist",
+    estimatedMinutes: 14,
     playbook: {
       outcome: "Software risk is addressed early and throughout delivery through explicit requirements, secure engineering practices, proportionate assurance, controlled release, and supported remediation.",
       decisions: [
@@ -458,6 +500,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations using or planning infrastructure, platform, software, container, serverless, or managed cloud services.",
     domains: ["cloud security", "shared responsibility", "cloud governance"],
     tags: ["landing zone", "cloud posture", "tenant security", "cloud exit"],
+    plainEnglishSummary: "Addresses shared-responsibility choices, identity, configuration resilience, approved service patterns, data, logging, posture, and secure decommissioning.",
+    readingDepth: "specialist",
+    estimatedMinutes: 13,
     playbook: {
       outcome: "Cloud use follows approved ownership and architecture patterns, with shared responsibilities understood and security controls maintained across provisioning, operation, change, and exit.",
       decisions: [
@@ -488,6 +533,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations operating office, data-center, cloud, industrial, wireless, remote-access, or externally connected networks.",
     domains: ["network security", "segmentation", "communications security"],
     tags: ["firewall", "trust boundary", "remote access", "network monitoring"],
+    plainEnglishSummary: "Establishes network ownership, segmentation, connection approval, secure administration, external exposure, wireless and name-service safeguards, telemetry, and periodic rule review.",
+    readingDepth: "specialist",
+    estimatedMinutes: 11,
     playbook: {
       outcome: "Network paths are intentionally designed and approved, sensitive boundaries limit unnecessary movement, and connectivity changes remain observable, attributable, and reviewable.",
       decisions: [
@@ -518,6 +566,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations whose workforce uses laptops, desktops, mobile devices, virtual desktops, personally owned devices, or remote locations to access organizational resources.",
     domains: ["endpoint security", "remote work", "mobile security"],
     tags: ["device management", "BYOD", "remote access", "device loss"],
+    plainEnglishSummary: "Governs device eligibility, secure configuration, protection, authentication, updates, local data, removable media, remote connectivity, loss reporting, support, and return.",
+    readingDepth: "specialist",
+    estimatedMinutes: 11,
     playbook: {
       outcome: "Devices and remote-work arrangements receive safeguards proportionate to access and data risk, remain supportable, and can be restricted or recovered when trust changes.",
       decisions: [
@@ -548,6 +599,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations using encryption, digital signatures, certificates, cryptographic keys, tokens, or secrets to protect information, identities, software, or communications.",
     domains: ["cryptography", "key management", "secrets management"],
     tags: ["encryption", "certificate lifecycle", "key rotation", "algorithm agility"],
+    plainEnglishSummary: "Establishes approved uses and accountable generation, storage, distribution, activation, rotation, recovery, revocation, destruction, inventory, and exception practices for cryptographic keys and secrets.",
+    readingDepth: "specialist",
+    estimatedMinutes: 13,
     playbook: {
       outcome: "Cryptographic protections are selected for defined risks, and keys, certificates, and secrets remain attributable, protected, available when legitimately needed, replaceable, and revocable.",
       decisions: [
@@ -578,6 +632,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations occupying or relying on offices, data rooms, operational sites, storage areas, shared facilities, or colocated infrastructure.",
     domains: ["physical security", "facility security", "environmental protection"],
     tags: ["visitor management", "physical access", "secure areas", "environmental controls"],
+    plainEnglishSummary: "Addresses site risk, physical zones, visitor and delivery handling, entry authorization, monitoring, environmental protection, equipment placement, media movement, and emergency access.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 9,
     playbook: {
       outcome: "Physical access and facility protections match the people, equipment, information, and service impact at each site, with accountable response to entry, environmental, and safety events.",
       decisions: [
@@ -609,6 +666,9 @@ export const additionalPolicyRecords = [
     applicability: "Organizations whose workforce, products, services, operations, or suppliers use generative, predictive, decision-support, autonomous, or other AI capabilities.",
     domains: ["AI governance", "acceptable use", "model risk"],
     tags: ["generative AI", "human oversight", "AI inventory", "model evaluation"],
+    plainEnglishSummary: "Establishes AI use-case ownership, risk tiering, permitted use, data and security boundaries, human oversight, evaluation, transparency, supplier review, monitoring, and retirement.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 14,
     playbook: {
       outcome: "AI uses are inventoried and owned, permitted behavior is understandable, and safeguards, evaluation, human authority, transparency, and monitoring are proportionate to plausible harm and dependency.",
       decisions: [

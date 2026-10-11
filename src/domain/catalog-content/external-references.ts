@@ -16,10 +16,19 @@ type ExternalRecordSeed = {
   officialUrl: string;
   domains: string[];
   tags: string[];
+  plainEnglishSummary?: string;
+  readingDepth?: "introductory" | "practitioner" | "specialist";
+  estimatedMinutes?: number;
 };
 
 function external<const T extends ExternalRecordSeed>(record: T, status: "current" | "superseded" = "current") {
-  return { ...record, status };
+  return {
+    ...record,
+    status,
+    ...(record.plainEnglishSummary === undefined ? {} : { plainEnglishSummary: record.plainEnglishSummary }),
+    ...(record.readingDepth === undefined ? {} : { readingDepth: record.readingDepth }),
+    ...(record.estimatedMinutes === undefined ? {} : { estimatedMinutes: record.estimatedMinutes }),
+  };
 }
 
 export const additionalExternalRecords = [
@@ -27,6 +36,9 @@ export const additionalExternalRecords = [
     id: "framework_nist_csf_1_1", slug: "nist-csf-1-1", name: "NIST Cybersecurity Framework 1.1", acronym: "NIST CSF", type: "framework",
     summary: "The superseded 2018 revision of NIST's voluntary framework for managing cybersecurity risk.",
     description: "NIST CSF 1.1 organized cybersecurity outcomes around Identify, Protect, Detect, Respond, and Recover. Eidos retains this metadata-only historical record so users can distinguish it from CSF 2.0.",
+    plainEnglishSummary: "The 2018 predecessor of NIST CSF 2.0, with five functions — Identify, Protect, Detect, Respond, Recover — and no GOVERN function. Most new adoption should use CSF 2.0 instead.",
+    readingDepth: "specialist",
+    estimatedMinutes: 6,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["cross-industry"],
     applicability: "Historical reference for organizations interpreting material written against CSF 1.1; new adoption decisions should verify the current NIST publication.", version: "1.1", publicationDate: "2018-04-16",
     officialUrl: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.04162018.pdf", domains: ["cybersecurity", "risk management", "governance"], tags: ["historical version", "framework core", "profiles", "implementation tiers"],
@@ -35,6 +47,9 @@ export const additionalExternalRecords = [
     id: "framework_nist_privacy", slug: "nist-privacy-framework", name: "NIST Privacy Framework", acronym: "NIST PF", type: "framework",
     summary: "A voluntary tool for identifying and managing privacy risk through enterprise risk-management practices.",
     description: "The NIST Privacy Framework provides outcome-oriented Core, Profile, and Implementation Tier concepts that organizations use to communicate and manage privacy risk without prescribing one implementation method. Version 1.0 was published January 16, 2020. NIST released PF 1.1 as an Initial Public Draft in 2024; the Eidos record reflects the current 1.0 framework while users should monitor for 1.1 finalization.",
+    plainEnglishSummary: "A voluntary structure for identifying and managing privacy risk, similar in approach to NIST CSF but focused on personal data rather than security.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 10,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["cross-industry"],
     applicability: "Organizations seeking a common structure for privacy-risk conversations and activities; selection does not establish a legal obligation.", version: "1.0", publicationDate: "2020-01-16",
     officialUrl: "https://www.nist.gov/privacy-framework", domains: ["privacy", "risk management", "governance"], tags: ["privacy risk", "profiles", "outcomes"],
@@ -43,6 +58,9 @@ export const additionalExternalRecords = [
     id: "framework_nist_ai_rmf", slug: "nist-ai-rmf-1-0", name: "NIST AI Risk Management Framework", acronym: "AI RMF", type: "framework",
     summary: "A voluntary framework for managing risks to individuals, organizations, and society from artificial-intelligence systems.",
     description: "AI RMF 1.0 organizes AI risk-management activity around Govern, Map, Measure, and Manage functions and emphasizes trustworthy and responsible AI characteristics.",
+    plainEnglishSummary: "A voluntary structure for managing AI-related risk across an AI system's lifecycle, organized around four functions: Govern, Map, Measure, Manage.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 12,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["cross-industry", "technology-saas"],
     applicability: "Organizations designing, developing, deploying, acquiring, or governing AI systems; it does not itself determine regulatory applicability.", version: "1.0", publicationDate: "2023-01-26",
     officialUrl: "https://www.nist.gov/itl/ai-risk-management-framework", domains: ["AI governance", "risk management", "assurance"], tags: ["trustworthy AI", "AI risk", "Govern Map Measure Manage"],
@@ -51,6 +69,9 @@ export const additionalExternalRecords = [
     id: "framework_nist_rmf", slug: "nist-risk-management-framework", name: "NIST Risk Management Framework", acronym: "NIST RMF", type: "framework",
     summary: "A structured life-cycle process for managing security and privacy risk in information systems and organizations.",
     description: "NIST SP 800-37 Revision 2 describes RMF activities for preparing, categorizing, selecting, implementing, assessing, authorizing, and continuously monitoring controls.",
+    plainEnglishSummary: "A seven-step federal process for managing security and privacy risk across an information system's lifecycle, ending in authorization and continuous monitoring.",
+    readingDepth: "specialist",
+    estimatedMinutes: 18,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States"], industries: ["government", "cross-industry"],
     applicability: "Federal and other organizations choosing to use the RMF; sector selection alone does not establish a mandate.", version: "SP 800-37 Revision 2", publicationDate: "2018-12-20",
     officialUrl: "https://csrc.nist.gov/pubs/sp/800/37/r2/final", domains: ["risk management", "security authorization", "privacy"], tags: ["system life cycle", "authorization", "continuous monitoring"],
@@ -59,6 +80,9 @@ export const additionalExternalRecords = [
     id: "framework_cobit_2019", slug: "cobit-2019", name: "COBIT 2019", acronym: "COBIT", type: "framework",
     summary: "A framework for enterprise governance and management of information and technology.",
     description: "COBIT provides governance-system components, objectives, design factors, and performance-management concepts for aligning information and technology with enterprise needs.",
+    plainEnglishSummary: "A framework for governing and managing enterprise information and technology, with focus on aligning IT with business goals.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 14,
     issuer: "ISACA", jurisdictions: ["global"], industries: ["cross-industry", "professional-services", "financial-services"],
     applicability: "Organizations designing or improving governance of enterprise information and technology; use does not establish certification or compliance.", version: "2019",
     officialUrl: "https://www.isaca.org/resources/cobit", domains: ["IT governance", "risk management", "assurance"], tags: ["governance system", "management objectives", "enterprise IT"],
@@ -67,6 +91,9 @@ export const additionalExternalRecords = [
     id: "framework_hitrust_csf", slug: "hitrust-csf", name: "HITRUST CSF", acronym: "HITRUST CSF", type: "framework",
     summary: "A certifiable risk and compliance framework that harmonizes security and privacy requirements from multiple sources.",
     description: "The HITRUST CSF organizes security and privacy controls and assessment requirements into a framework used particularly in healthcare and other regulated environments.",
+    plainEnglishSummary: "A certifiable framework that pulls together controls from many sources (ISO, NIST, HIPAA, PCI, GDPR) into one assessable package, common in healthcare assurance.",
+    readingDepth: "specialist",
+    estimatedMinutes: 14,
     issuer: "HITRUST Alliance", jurisdictions: ["United States", "global"], industries: ["healthcare", "financial-services", "cross-industry"],
     applicability: "Organizations choosing HITRUST assessments or using its framework; Eidos does not determine certification scope or eligibility.",
     officialUrl: "https://hitrustalliance.net/hitrust-framework", domains: ["information security", "privacy", "assurance"], tags: ["HITRUST", "assessment", "harmonization"],
@@ -75,6 +102,9 @@ export const additionalExternalRecords = [
     id: "framework_c2m2", slug: "cybersecurity-capability-maturity-model-2-1", name: "Cybersecurity Capability Maturity Model", acronym: "C2M2", type: "framework",
     summary: "A voluntary maturity model for evaluating and improving cybersecurity capabilities.",
     description: "C2M2 Version 2.1 provides domains, objectives, and maturity indicator levels for self-evaluating cybersecurity practices and prioritizing capability improvements.",
+    plainEnglishSummary: "A voluntary maturity model for self-evaluating cybersecurity capabilities across domains, originally built for the U.S. energy sector but used more broadly.",
+    readingDepth: "specialist",
+    estimatedMinutes: 12,
     issuer: "U.S. Department of Energy", jurisdictions: ["United States"], industries: ["critical-infrastructure", "cross-industry"],
     applicability: "Organizations conducting voluntary cybersecurity capability evaluations, including energy and critical-infrastructure organizations.", version: "2.1", publicationDate: "2022-06-01",
     officialUrl: "https://www.energy.gov/ceser/cybersecurity-capability-maturity-model-c2m2", domains: ["cybersecurity maturity", "risk management", "critical infrastructure"], tags: ["self-evaluation", "maturity indicators", "capability improvement"],
@@ -99,6 +129,9 @@ export const additionalExternalRecords = [
     id: "framework_nice_workforce", slug: "nice-workforce-framework", name: "NICE Workforce Framework for Cybersecurity", acronym: "NICE Framework", type: "framework",
     summary: "A common language for describing cybersecurity work, roles, competencies, knowledge, and skills.",
     description: "The NICE Framework supports workforce planning, education, hiring, development, and communication by organizing cybersecurity work through standardized concepts.",
+    plainEnglishSummary: "A common vocabulary for describing cybersecurity work — tasks, knowledge, skills, and work roles — used for hiring, education, and workforce planning.",
+    readingDepth: "practitioner",
+    estimatedMinutes: 10,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["cross-industry", "education", "government"],
     applicability: "Employers, educators, learners, workforce planners, and public agencies using a common cybersecurity-workforce vocabulary.", version: "NIST SP 800-181 Revision 1",
     officialUrl: "https://www.nist.gov/itl/applied-cybersecurity/nice/nice-framework-resource-center", domains: ["workforce", "education", "governance"], tags: ["work roles", "competencies", "skills"],
@@ -107,6 +140,9 @@ export const additionalExternalRecords = [
     id: "framework_nist_ssdf", slug: "nist-secure-software-development-framework-1-1", name: "NIST Secure Software Development Framework", acronym: "SSDF", type: "framework",
     summary: "A set of high-level secure-software-development practices that can be integrated into software development life cycles.",
     description: "NIST SP 800-218 groups practices around preparing the organization, protecting software, producing well-secured software, and responding to vulnerabilities.",
+    plainEnglishSummary: "A set of secure software development practices for integrating security into the software lifecycle, organized into four practice groups.",
+    readingDepth: "specialist",
+    estimatedMinutes: 14,
     issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["technology-saas", "cross-industry"],
     applicability: "Software producers, acquirers, and technology organizations tailoring secure-development practices to their risks and life cycles.", version: "1.1", publicationDate: "2022-02-03",
     officialUrl: "https://csrc.nist.gov/pubs/sp/800/218/final", domains: ["application security", "software supply chain", "secure development"], tags: ["SDLC", "software vulnerabilities", "SSDF"],

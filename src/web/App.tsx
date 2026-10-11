@@ -13,6 +13,7 @@ import {
   filterCatalog,
   formatCatalogType,
   formatIndustry,
+  formatReadingDepth,
   formatRelationshipAuthority,
   getAdjacentCatalogResult,
   getCatalogSearchMatch,
@@ -388,6 +389,23 @@ function App() {
               <div><span className="section-kicker">Refine</span><h2 id="filter-heading">Browse</h2></div>
               {(query || activeType || activeStatuses.size > 0 || activeDomains.size > 0 || activeIndustries.size > 0) && <button className="rail-clear" onClick={clearFilters}>Reset</button>}
             </div>
+            <details className="filter-group industry-filter">
+              <summary>Industry context</summary>
+              <p>Common relevance, not legal applicability.</p>
+              <div className="industry-options" role="group" aria-label="Industry filters">
+                {facets.industries.filter((facet) => facet.value !== "cross-industry").map((facet) => {
+                  const industry = facet.value as CatalogIndustry;
+                  const selected = activeIndustries.has(industry);
+                  return <button key={industry} aria-pressed={selected} className={selected ? "active" : ""} onClick={() => toggleIndustry(industry)}><span>{facet.label}</span><b>{facet.directCount === 0 ? "Broad only" : facet.directCount}</b></button>;
+                })}
+              </div>
+            </details>
+            <details className="filter-group facet-filter topic-filter">
+              <summary>Topic {activeDomains.size > 0 && <span>{activeDomains.size}</span>}</summary>
+              <div className="facet-options" role="group" aria-label="Topic filters">
+                {facets.domains.map((facet) => <button key={facet.value} aria-pressed={activeDomains.has(facet.value)} className={activeDomains.has(facet.value) ? "active" : ""} onClick={() => toggleDomain(facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
+              </div>
+            </details>
             <details className="filter-group material-filter" open={materialTypesOpen} onToggle={(event) => setMaterialTypesOpen(event.currentTarget.open)}>
               <summary>Material type {activeType && <span>1</span>}</summary>
               <div className="type-options">
@@ -401,28 +419,10 @@ function App() {
                 {facets.statuses.map((facet) => <button key={facet.value} aria-pressed={activeStatuses.has(facet.value)} className={activeStatuses.has(facet.value) ? "active" : ""} onClick={() => toggleStatus(facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
               </div>
             </details>
-            <details className="filter-group facet-filter topic-filter">
-              <summary>Topic {activeDomains.size > 0 && <span>{activeDomains.size}</span>}</summary>
-              <div className="facet-options" role="group" aria-label="Topic filters">
-                {facets.domains.map((facet) => <button key={facet.value} aria-pressed={activeDomains.has(facet.value)} className={activeDomains.has(facet.value) ? "active" : ""} onClick={() => toggleDomain(facet.value)}><span>{facet.label}</span><b>{facet.count}</b></button>)}
-              </div>
-            </details>
-            <details className="filter-group industry-filter">
-              <summary>Industry context</summary>
-              <p>Common relevance, not legal applicability.</p>
-              <div className="industry-options" role="group" aria-label="Industry filters">
-                {facets.industries.filter((facet) => facet.value !== "cross-industry").map((facet) => {
-                  const industry = facet.value as CatalogIndustry;
-                  const selected = activeIndustries.has(industry);
-                  return <button key={industry} aria-pressed={selected} className={selected ? "active" : ""} onClick={() => toggleIndustry(industry)}><span>{facet.label}</span><b>{facet.directCount === 0 ? "Broad only" : facet.directCount}</b></button>;
-                })}
-              </div>
-            </details>
             <p className="rail-legal">Educational reference only. Not legal advice, certification, or a compliance determination.</p>
               </div>
             </details>
           </aside>
-
           <section ref={resultsPaneRef} className="results-pane" id="catalog-results" aria-labelledby="catalog-heading">
             <div className="results-toolbar">
               <div><span className="section-kicker">Reference library</span><h2 id="catalog-heading">{activeType ? formatCatalogType(activeType, true) : query ? "Search results" : "All materials"}</h2></div>
@@ -441,8 +441,9 @@ function App() {
                 const industryRelevance = getIndustryRelevance(record, activeIndustries);
                 const searchMatch = getCatalogSearchMatch(record, query);
                 return <article className="record-card" key={record.id}>
-                  <div className="record-meta"><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><span>{humanize(record.status)}</span></div>
+                  <div className="record-meta"><span className={`type-badge type-${record.type}`}>{formatCatalogType(record.type)}</span><span>{humanize(record.status)}</span>{record.readingDepth && <span className={`depth-chip depth-${record.readingDepth}`}>{formatReadingDepth(record.readingDepth)}</span>}{record.estimatedMinutes !== undefined && <span className="minutes-chip">⏱ {record.estimatedMinutes} min</span>}</div>
                   <h3><button className="record-title-button" onClick={() => openRecord(record)}><span>{record.name}</span><small aria-hidden="true">Open →</small></button></h3>
+                  {record.plainEnglishSummary && <p className="plain-english-summary">{record.plainEnglishSummary}</p>}
                   <p>{record.summary}</p>
                   {searchMatch && <p className="search-match">{searchMatch.label}</p>}
                   {industryRelevance && <p className={`relevance-note ${industryRelevance.kind}`}>{industryRelevance.label}</p>}
@@ -502,6 +503,7 @@ function App() {
               {detailSection === "overview" && <section className="detail-section" id="record-panel-overview" role="tabpanel" aria-labelledby="record-tab-overview">
                 <div className="overview-grid">
                   <div className="overview-primary">
+                    {selectedRecord.plainEnglishSummary && <section className="plain-english-card"><span className="section-kicker">In plain English</span><p>{selectedRecord.plainEnglishSummary}</p></section>}
                     <span className="section-kicker">What this is</span>
                     <p className="overview-description">{selectedRecord.description}</p>
                     <section className="applicability-card">
@@ -517,6 +519,8 @@ function App() {
                       <div><dt>Version</dt><dd>{selectedRecord.version ?? "Not specified"}</dd></div>
                       <div><dt>Status</dt><dd>{humanize(selectedRecord.status)}</dd></div>
                       <div><dt>Jurisdiction</dt><dd>{selectedRecord.jurisdictions.join(", ")}</dd></div>
+                      {selectedRecord.readingDepth && <div><dt>Reading depth</dt><dd>{formatReadingDepth(selectedRecord.readingDepth)}</dd></div>}
+                      {selectedRecord.estimatedMinutes !== undefined && <div><dt>Estimated reading</dt><dd>{`${selectedRecord.estimatedMinutes} min`}</dd></div>}
                     </dl>
                   </aside>
                 </div>

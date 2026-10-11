@@ -178,6 +178,9 @@ export const catalogRecordSchema = z.object({
   reviewedBy: labelSchema,
   domains: taxonomyValuesSchema,
   tags: taxonomyValuesSchema,
+  plainEnglishSummary: z.string().trim().min(1).max(280).optional(),
+  readingDepth: z.enum(["introductory", "practitioner", "specialist"]).optional(),
+  estimatedMinutes: z.number().int().min(1).max(240).optional(),
   playbook: policyPlaybookSchema.optional(),
 }).strict().superRefine((record, context) => {
   if (record.playbook !== undefined && record.type !== "policy") {
@@ -396,9 +399,12 @@ const rawSampleCatalog = {
       id: "framework_nist_csf_2_0", slug: "nist-csf-2-0", name: "NIST Cybersecurity Framework 2.0", acronym: "NIST CSF", type: "framework",
       summary: "A voluntary framework for understanding, assessing, prioritizing, and communicating cybersecurity outcomes.",
       description: "NIST CSF 2.0 organizes cybersecurity outcomes into six Functions—Govern, Identify, Protect, Detect, Respond, and Recover—without prescribing a single implementation method.",
+      plainEnglishSummary: "A voluntary structure for organizing how an organization identifies, protects against, detects, responds to, and recovers from cybersecurity risk. Adds a GOVERN function alongside the original five.",
+      readingDepth: "introductory",
+      estimatedMinutes: 14,
       issuer: "U.S. National Institute of Standards and Technology", jurisdictions: ["United States", "global"], industries: ["cross-industry"],
       applicability: "Organizations of any size, sector, or maturity seeking to manage cybersecurity risk.", version: "2.0", status: "current",
-      officialUrl: "https://www.nist.gov/cyberframework", domains: ["governance", "risk management", "cybersecurity"], tags: ["outcomes", "profiles", "tiers"],
+      officialUrl: "https://www.nist.gov/cyberframework", domains: ["governance", "risk management", "cybersecurity"], tags: ["outcomes", "profiles", "tiers", "GOVERN"],
     },
     {
       id: "standard_iso_27001_2022", slug: "iso-iec-27001-2022", name: "ISO/IEC 27001:2022", acronym: "ISO 27001", type: "standard",
@@ -452,6 +458,9 @@ const rawSampleCatalog = {
       id: "policy_access_control", slug: "access-control-policy", name: "Access Control Policy", type: "policy",
       summary: "A reusable policy pattern for governing logical and physical access to organizational resources.",
       description: "This sample policy record describes expected access approval, least privilege, authentication, periodic review, and timely revocation practices; it is not legal advice or an official framework requirement.",
+      plainEnglishSummary: "Sets expectations for approving, authenticating, restricting, reviewing, and revoking access to organizational resources based on least privilege.",
+      readingDepth: "practitioner",
+      estimatedMinutes: 10,
       issuer: "Eidos sample library", jurisdictions: ["organization-specific"], industries: ["cross-industry"],
       applicability: "Organizations tailoring a policy baseline to their risk, legal, contractual, and technical context.", version: "sample 1.0", status: "current",
       domains: ["access control", "identity management", "governance"], tags: ["least privilege", "authentication", "access review"],
@@ -461,6 +470,9 @@ const rawSampleCatalog = {
       id: "policy_incident_response", slug: "incident-response-policy", name: "Incident Response Policy", acronym: "IR Policy", type: "policy",
       summary: "A reusable policy pattern for preparing for, detecting, handling, and learning from security incidents.",
       description: "This sample policy establishes roles, escalation expectations, communications, evidence preservation, recovery, and post-incident review at a high level.",
+      plainEnglishSummary: "Establishes roles, escalation expectations, communications, evidence preservation, recovery, and post-incident review for security incidents.",
+      readingDepth: "practitioner",
+      estimatedMinutes: 11,
       issuer: "Eidos sample library", jurisdictions: ["organization-specific"], industries: ["cross-industry"],
       applicability: "Organizations defining an incident-response governance baseline.", version: "sample 1.0", status: "current",
       domains: ["incident response", "governance", "resilience"], tags: ["escalation", "communications", "lessons learned"],
@@ -617,9 +629,9 @@ export function searchCatalog(query: string, filters: CatalogSearchFilters = {})
   return catalog.records.filter((record) => {
     const searchable = [
       record.name, record.acronym ?? "", record.summary, record.description, record.issuer,
-      record.applicability, record.version ?? "", ...record.jurisdictions, ...record.industries,
-      ...record.domains, ...record.tags,
-    ].join(" ").toLocaleLowerCase();
+      record.applicability, record.version ?? "", record.plainEnglishSummary ?? "",
+          ...record.jurisdictions, ...record.industries, ...record.domains, ...record.tags,
+        ].join(" ").toLocaleLowerCase();
     const searchableTokens = new Set(searchable.split(/[^\p{L}\p{N}]+/u).filter(Boolean));
     return terms.every((term) => term.length <= 2 ? searchableTokens.has(term) : searchable.includes(term))
       && (filters.types === undefined || filters.types.includes(record.type))

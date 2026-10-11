@@ -47,7 +47,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .nav-compare span { display: inline-grid; min-width: 18px; height: 18px; margin-left: 5px; place-items: center; border-radius: 99px; background: rgba(255,255,255,.07); font-size: 10px; }
 .nav-compare:disabled { opacity: .42; cursor: not-allowed; }
 
-.workspace { height: calc(100vh - 64px); min-height: 0; max-width: 1560px; margin: 0 auto; padding: 18px clamp(18px,3vw,42px) 24px; display: flex; flex-direction: column; gap: 18px; }
+.workspace { height: calc(100vh - 64px); min-height: 0; max-width: min(calc(100vw - 32px), 1920px); margin: 0 auto; padding: 18px clamp(18px,3vw,42px) 24px; display: flex; flex-direction: column; gap: 18px; }
 .workspace-intro { flex: none; min-height: 126px; display: grid; grid-template-columns: minmax(320px,.9fr) minmax(420px,1.1fr); align-items: center; gap: clamp(32px,6vw,88px); padding: 8px 4px 12px; }
 .eyebrow, .section-kicker { color: #8f8eff; font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 .workspace-intro h1 { margin: 8px 0 8px; max-width: 620px; font-size: clamp(28px,3.2vw,44px); font-weight: 500; line-height: 1.05; letter-spacing: -.045em; }
@@ -115,6 +115,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .record-title-button { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .record-title-button small { flex: none; margin-top: 3px; color: #9695ff; font-size: 9px; font-weight: 500; }
 .record-title-button:hover span { color: #c9c8ff; }
+.record-card > .record-meta { gap: 6px; }
+.depth-chip { display: inline-flex; padding: 3px 7px; border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: 99px; color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); font-size: 9px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.depth-chip.depth-specialist { border-color: color-mix(in srgb, #d96b6b 30%, transparent); color: #e88a8a; background: color-mix(in srgb, #d96b6b 6%, transparent); }
+.depth-chip.depth-introductory { border-color: color-mix(in srgb, #6bc78f 30%, transparent); color: #7fd8a3; background: color-mix(in srgb, #6bc78f 6%, transparent); }
+.minutes-chip { display: inline-flex; padding: 3px 7px; border: 1px solid var(--border-soft); border-radius: 99px; color: var(--quiet); background: rgba(255,255,255,.025); font-size: 9px; font-weight: 500; letter-spacing: .02em; }
+.record-card > .plain-english-summary { margin: -2px 0 8px; color: var(--text); font-size: 12px; line-height: 1.45; font-weight: 500; }
 .record-card > p { margin: 0 0 12px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .record-card > .search-match { width: max-content; margin: -4px 0 10px; padding: 3px 6px; border-radius: 4px; background: rgba(255,255,255,.045); color: #aeb2bc; font-size: 9px; }
 .record-card > .relevance-note { margin: 0 0 10px; padding: 7px 8px; border-left: 2px solid #7e7dff; background: rgba(113,112,255,.07); color: #b7b6df; font-size: 9px; }
@@ -174,6 +180,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .applicability-card { padding: 16px; background: rgba(113,112,255,.055); }
 .applicability-card h3, .at-a-glance h3, .topic-strip h3, .section-intro h3, .playbook-intro h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .applicability-card p { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.plain-english-card { padding: 14px 16px; margin-bottom: 12px; border-left: 2px solid #7e7dff; background: rgba(113,112,255,.08); border-radius: 6px; }
+.plain-english-card p { margin: 0; color: var(--text); font-size: 14px; line-height: 1.55; font-weight: 500; }
 .applicability-card small { display: block; margin-top: 10px; color: var(--quiet); font-size: 9px; line-height: 1.45; }
 .at-a-glance { padding: 18px; }
 .at-a-glance dl { margin: 0; }
