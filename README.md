@@ -213,5 +213,6 @@ address. The deployed product does not use it.
 - [Operations](./docs/OPERATIONS.md)
 - [Security requirements](./docs/SECURITY_REQUIREMENTS.md)
 - [Threat model](./docs/THREAT_MODEL.md)
+- [Production security review](./docs/PRODUCTION_SECURITY_REVIEW.md)
 
 Several architecture and visual-design documents were authored for the preserved assessment-graph prototype. Where they conflict with the catalog-first product brief, the product brief and current implementation take precedence until those historical documents are reconciled.
