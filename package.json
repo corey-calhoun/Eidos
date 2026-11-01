@@ -18,10 +18,12 @@
     "start:web": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "audit": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=moderate",
-    "accept": "npm run typecheck && npm test && npm run build && npm run audit && npm run audit:all",
+    "accept": "npm run typecheck && npm run test && npm run build && npm run check:palette && npm run audit && npm run audit:all",
     "verify:csp": "node scripts/verify-production-csp.mjs http://127.0.0.1:4318",
     "verify:analytics": "node scripts/verify-analytics.mjs http://127.0.0.1:4318",
-    "verify:analytics:live": "node scripts/verify-analytics-live.mjs"
+    "verify:analytics:live": "node scripts/verify-analytics-live.mjs",
+    "check:palette": "node scripts/check-palette.mjs",
+    "render:og": "node scripts/render-og-image.mjs"
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",
@@ -39,6 +41,7 @@
     "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
     "playwright": "1.55.1",
+    "sharp": "0.35.3",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
     "vite": "8.3.5",
