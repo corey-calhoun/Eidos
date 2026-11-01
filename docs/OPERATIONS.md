@@ -218,18 +218,88 @@ The API validates query names and values strictly. Check `q`, `type`, `status`, 
 
 Use the exact public slug returned by `/api/catalog`. Unknown or obsolete slugs intentionally produce a safe not-found response.
 
+## Production deployment
+
+Eidos deploys as a **static site**. `dist-web/` is the entire artifact.
+
+Why static: the web client in `src/web/` makes no runtime network calls. The
+catalog is compiled into the JavaScript bundle, so the browser needs only the
+HTML, one JS file, and one CSS file. There is no database, no session, no
+server-side rendering, and no API dependency in the published product.
+
+```bash
+npm ci
+npm run accept      # typecheck, tests, both builds, dependency audit
+npm run build:web   # -> dist-web/
+```
+
+`vercel.json` in the repository root declares the build command, the output
+directory (`dist-web`), and the production response headers. Deploy by
+connecting the repository to a static host and letting it run `npm run build:web`,
+or by uploading `dist-web/` directly to any static host.
+
+### What is deployed
+
+- `dist-web/index.html`
+- `dist-web/assets/*` — content-hashed JS and CSS
+- `dist-web/favicon.svg`, `og-image.png`, `og-image.svg`, `robots.txt`, `sitemap.xml`
+
+### What is never deployed
+
+- The Fastify API and all its routes.
+- `local-data/`, SQLite databases, evidence, exports, uploads — excluded by
+  `.gitignore` and `vercelignore`, and not part of the build output.
+- Environment files, credentials, or secrets. None exist in the repository,
+  and the built bundle was verified to contain no filesystem paths, API
+  endpoints, or secret-shaped strings.
+
+### Response headers
+
+Configured in `vercel.json`. The CSP is the strictest useful form for this
+bundle: no inline scripts, no inline styles, no external fonts, and no runtime
+network access, so `connect-src 'none'` and `default-src 'none'` are accurate
+rather than aspirational. The browser enforces them.
+
+### The API is not part of the deployment
+
+`src/server/` remains a local development and integration surface. Its
+Host/Origin allowlist, loopback binding, 64 KiB body limit, and defensive
+headers are unchanged by deploying the static site. Do not relax them to make
+the API reachable in production — the deployed product does not call it.
+
+### Local runtime remains local
+
+The local API and UI still bind to `127.0.0.1` only. Run them with
+`npm run start:api` and `npm run start:web` for local work; stop them with
+`Ctrl+C` and verify the listeners are closed as described above.
+
+### Screenshots
+
+Portfolio screenshots are captured from the production build, not the dev
+server:
+
+```bash
+npm run build:web
+npx serve -l 4318 dist-web          # or any static server
+node scripts/capture-screenshots.mjs http://127.0.0.1:4318 test-results/portfolio
+```
+
+The capture fails loudly if a screen cannot be reached or if the browser logs
+a console or page error, so a broken screenshot is a failed run rather than a
+silent bad asset.
+
 ## Not production-safe
 
-Do not deploy Eidos, expose it to a LAN, proxy it, tunnel it, or use it as a multi-user service.
-
-The current local MVP lacks production-critical controls and operations including:
+The **API** is not production-safe and must not be published. The following
+remain true for any hosted or multi-user use of the API:
 
 - authentication and authorization;
 - tenant/workspace isolation;
 - hosted secrets management and encryption architecture;
 - TLS and hardened deployment configuration;
 - production service supervision, monitoring, alerting, and rate limiting;
-- collaborative persistence, migrations, backups, and restore tooling;
-- production security review and deployment approval.
+- collaborative persistence, migrations, backups, and restore tooling.
 
-Loopback binding reduces exposure but is not authentication. Any process running as the local user can attempt loopback requests. Use Eidos only within its approved local-first boundary.
+The published static site does not use the API, has no user data, stores no
+state, and requires none of the above. Publishing the static site does not
+change any of these API limitations — it sidesteps them entirely.
