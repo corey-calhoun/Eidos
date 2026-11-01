@@ -73,6 +73,25 @@ createServer(async (req, res) => {
     return;
   }
 
+  // The Vercel insights script is served by the Vercel edge, not by the
+  // application. Locally it does not exist and the request 404s, exactly as
+  // it would in any non-Vercel deployment -- so the default local runtime
+  // collects nothing and makes no analytics request at all.
+  //
+  // EIDOS_STUB_INSIGHTS=1 serves a minimal stand-in so the CSP check can
+  // prove that the script element is permitted by script-src 'self' rather
+  // than merely failing to load. It is opt-in because the stub is not the
+  // real script and must never be mistaken for production behavior.
+  if (process.env.EIDOS_STUB_INSIGHTS === "1" && pathname === "/_vercel/insights/script.js") {
+    const stub = `window.__va_stub_loaded=true;`;
+    const headers2 = {
+      "Content-Type": "text/javascript; charset=utf-8",
+      ...Object.fromEntries(headersFor(url.pathname).map((h) => [h.key, h.value])),
+    };
+    res.writeHead(200, headers2).end(stub);
+    return;
+  }
+
   let body;
   let file = target;
   try {

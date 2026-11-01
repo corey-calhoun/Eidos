@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
 import App from "./App.js";
 import "./styles.css";
 
@@ -9,5 +10,6 @@ if (!root) throw new Error("Eidos application root was not found.");
 createRoot(root).render(
   <StrictMode>
     <App />
+    <Analytics />
   </StrictMode>,
 );

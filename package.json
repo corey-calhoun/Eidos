@@ -18,10 +18,14 @@
     "start:web": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "audit": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=moderate",
-    "accept": "npm run typecheck && npm test && npm run build && npm run audit && npm run audit:all"
+    "accept": "npm run typecheck && npm test && npm run build && npm run audit && npm run audit:all",
+    "verify:csp": "node scripts/verify-production-csp.mjs http://127.0.0.1:4318",
+    "verify:analytics": "node scripts/verify-analytics.mjs http://127.0.0.1:4318",
+    "verify:analytics:live": "node scripts/verify-analytics-live.mjs"
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",
+    "@vercel/analytics": "2.0.1",
     "cytoscape": "3.34.2",
     "cytoscape-fcose": "2.2.0",
     "fastify": "5.12.7",
