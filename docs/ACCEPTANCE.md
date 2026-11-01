@@ -238,6 +238,15 @@ Pass when runtime evidence confirms that:
 
 Loopback restrictions are not authentication and do not make this build production-safe.
 
+The scope of this criterion is the packaged and local runtime. It continues to
+pass there: `/_vercel/insights/script.js` does not exist outside Vercel, so the
+analytics request returns 404 and no outbound request is made at all. The
+hosted Vercel deployment additionally loads Vercel's first-party analytics
+script, which is served same-origin and beacons to the site's own origin — it
+is not a third-party analytics service, and it collects aggregate page-view
+data with no cookie and no persistent identifier. That deployment behavior is
+verified separately in `docs/PRODUCTION_SECURITY_REVIEW.md` (F-15).
+
 ### AC-15 — Claims and editorial review
 
 Pass when a product/documentation reviewer samples every fixture record and relationship and confirms that:

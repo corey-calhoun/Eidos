@@ -13,9 +13,14 @@
 **APPROVED FOR STATIC PRODUCTION**, subject to the conditions in section 6.
 
 The reviewed deployment is a set of static files with no server-side attack surface, no
-database, no session, no user data, and no runtime network access. The only data it
-publishes is curated public reference material. Every mutation vector the original
-local-only design guarded against is absent from this deployment shape.
+database, no session, no user data, and no runtime network access from the
+application's own code. The only data it publishes is curated public reference
+material. Every mutation vector the original local-only design guarded against is
+absent from this deployment shape.
+
+One runtime network request was added on 2026-11-01: Vercel Web Analytics, which is
+first-party to the hosting platform and same-origin only (F-15). It collects aggregate
+page-view data and no user data.
 
 This approval covers the **static deployment only**. It does not authorize publishing
 the API.
@@ -32,7 +37,8 @@ the API.
 | Published artifact | `dist-web/` inspected directly — 8 files, 595 KB total |
 | Catalog content | `src/domain/catalog.ts`, `src/domain/catalog-content/*.ts` — copyright treatment, content markers, publisher authority |
 | Server boundary | `src/server/app.ts`, `src/server/config.ts`, `src/server/storage.ts` — Host/Origin enforcement, headers, body limits, legacy route gating |
-| Web client | `src/web/App.tsx`, `src/web/catalog-view-model.ts`, `src/web/styles.css` — injection surface, external references, storage use |
+| Web client | `src/web/App.tsx`, `src/web/catalog-view-model.ts`, `src/web/styles.css`, `src/web/main.tsx` — injection surface, external references, storage use |
+| Analytics integration | `src/web/main.tsx`, `@vercel/analytics@2.0.1`, the served `/_vercel/insights/script.js`, and the live beacon — script origin, beacon target, payload contents, storage side effects |
 | Deployment config | `vercel.json`, `.vercelignore`, `index.html`, `vite.config.ts`, `package.json` |
 | Dependency posture | `npm audit` (prod and full), `npm ls`, `npm sbom` (CycloneDX 1.5, 141 KB) |
 | Runtime behavior | App driven in a real browser under the exact production response headers |
@@ -47,6 +53,13 @@ including: artifact scanning for absolute paths, usernames, secrets, `/api` refe
 measurement for description length and quotation density; Vercel build-environment
 simulation under `NODE_ENV=production`; and a clean-checkout build.
 
+On 2026-11-01, after Vercel Web Analytics was added, the review was extended with a
+further set of commands against a live deployment and a live browser: the analytics
+script's origin and status, the beacon's method, URL and body, the full request log,
+cookie and `localStorage` state after load, the served script's static contents, and
+the local and packaged runtimes' response to the same path. Those results are in
+section 3.4 and in F-15.
+
 ---
 
 ## 2. Findings
@@ -59,9 +72,9 @@ component is not published.
 |---|---|---|---|---|
 | F-1 | Informational | The published artifact is a pure static SPA. No API routes, no server code, no database, no evidence files. | `dist-web/` contains exactly: `index.html`, `assets/index-*.js`, `assets/index-*.css`, `favicon.svg`, `og-image.png`, `og-image.svg`, `robots.txt`, `sitemap.xml`. Zero matches for `/api/graph`, `/api/exports`, `/api/analysis`, `*.sqlite`, `*.db`, `.env`. | None. |
 | F-2 | Informational | No secrets, credentials, tokens, or absolute filesystem paths in the published bundle. | Bundle scanned for API-key/secret/password/bearer/authorization patterns, `C:\`/`E:\`/`/Users/` paths, emails, and IP-like literals — all zero or benign (matches were policy vocabulary such as "secrets management"). | None. |
-| F-3 | Informational | No runtime network access. The client makes zero `fetch`/`axios`/`XMLHttpRequest` calls; the catalog is compiled into the bundle. | `grep -rn "fetch\|axios\|XMLHttpRequest\|EventSource" src/web/` → no matches. Browser resource-timing under the production headers confirmed zero cross-origin requests. | None. This is what makes `connect-src 'none'` enforceable rather than aspirational. |
+| F-3 | Informational | The application code makes no runtime network access. The client's own source makes zero `fetch`/`axios`/`XMLHttpRequest` calls; the catalog is compiled into the bundle. The one network request in the published deployment comes from Vercel's analytics script, and it is same-origin. | `grep -rn "fetch\|axios\|XMLHttpRequest\|EventSource" src/web/` → no matches. Browser resource-timing under the production headers confirmed zero cross-origin requests. Live run: the only outbound request was the `POST https://…/_vercel/insights/view` beacon on the site's own origin. | None. This is what keeps `connect-src 'self'` enforceable rather than aspirational: the app's own code cannot call out, and the browser blocks any destination other than the site's own origin. |
 | F-4 | Informational | No injection surface. No `dangerouslySetInnerHTML`, no `innerHTML`, no `eval` in application code. | `grep -rn "dangerouslySetInnerHTML\|innerHTML\|eval(" src/` → no matches in application source. Bundle `innerHTML` occurrences are React DOM internals (setting `textContent`/`__html` on React-managed nodes), not string-to-DOM sinks. | None. |
-| F-5 | Informational | No browser storage, cookies, workers, or service workers. No persistent client-side state. | Bundle scan for `localStorage`, `sessionStorage`, `cookie`, `serviceWorker`, `Worker` → zero matches. | None. |
+| F-5 | Informational | No browser storage, cookies, workers, or service workers in the application code. No persistent client-side state. | Bundle scan for `localStorage`, `sessionStorage`, `cookie`, `serviceWorker`, `Worker` → zero matches. Live run with the analytics script loaded: `context.cookies()` → `[]`, `Object.keys(localStorage)` → `[]`. The separately served analytics script contains `localStorage` code, but only on the `identify`/`group` paths that Eidos never calls. | None. |
 | F-6 | Informational | Third-party content is Eidos-authored prose, not reproduced standards text. | Longest publisher description is 617 characters (HIPAA Security Rule), max generic summary 154 characters, max applicability 262 characters. Zero publisher records contain a URL inside `description`. Every publisher record carries `contentMarker: "paraphrase"` and `copyrightTreatment: "metadata_summary_link"`; every Eidos-authored record carries `contentMarker: "editorial"` and `copyrightTreatment: "eidos_original"`. Schema enforces the pairing (catalog.ts:193, catalog.ts:204). | None. Restricted standards are linked, not reproduced. |
 | F-7 | Low | `playwright` dev dependency was pinned to 1.55.0, which is affected by a high-severity advisory (browser download without SSL certificate authenticity verification). Dev-only, never shipped, but it is an unverified trust path on a developer machine. | `npm audit` reported `playwright <1.55.1` — Severity: high. | **RESOLVED 2026-10-31** — bumped to 1.55.1. `npm audit` now reports 0 vulnerabilities across the full tree including dev. |
 | F-8 | Low | `vitest` 5.0.0 affected by a moderate advisory (code injection via unauthenticated manual mock registration; Windows backslash traversal bypass in `@vitest/mocker`). Dev-only. | `npm audit` reported `vitest 5.0.0-beta.1 - 5.0.2` and `@vitest/mocker` — Severity: moderate. | **RESOLVED 2026-10-31** — bumped to 5.0.5. `npm audit` now reports 0 vulnerabilities. |
@@ -70,7 +83,8 @@ component is not published.
 | F-11 | Informational | Build environment omits dev dependencies under `NODE_ENV=production`, which would break `npm run build:web`. | Reproduced: with `NODE_ENV=production npm ci --omit=dev`, `vite` and `tsc` are absent and the build fails with `tsc' is not recognized`. | **RESOLVED 2026-10-31** — `installCommand` set to `npm ci --include=dev`, then verified by a clean-checkout build under `NODE_ENV=production`. |
 | F-12 | Low | The deployment ignore file was named `vercelignore` without the leading dot. Vercel only reads `.vercelignore`, so the unprefixed name was silently ignored and nothing would have been excluded from the upload. | Confirmed against Vercel's deployment documentation: the file must be `.vercelignore`. The unprefixed file was present and correct in content — it simply would never have been read. | **RESOLVED 2026-10-31** — renamed via `git mv` to `.vercelignore`. |
 | F-13 | Informational | The API's security controls are unchanged by this deployment. | `src/server/app.ts` retains loopback binding, the Host allowlist (`421` on mismatch), the Origin allowlist (`403` on mismatch), `Content-Security-Policy: default-src 'none'` on API responses, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, `Permissions-Policy`, 64 KiB body limit, and the mutating-request Origin and JSON media-type requirements. | None. The API is not published, so none of these controls were relaxed to make the deployment work. |
-| F-14 | Informational | The published CSP is stricter than the site's own, and is honest about the bundle. | `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests`. No `unsafe-inline`, no `unsafe-eval`. The bundle contains no inline scripts, no inline styles, no external fonts, and no runtime requests — verified. | None. |
+| F-14 | Informational | The published CSP is stricter than the site's own, and is honest about the bundle. | `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests`. No `unsafe-inline`, no `unsafe-eval`. The bundle contains no inline scripts, no inline styles, and no external fonts — verified. `connect-src` was widened from `'none'` to `'self'` on 2026-11-01 to permit the same-origin analytics beacon; no other directive was weakened. | None. |
+| F-15 | Low | Vercel Web Analytics was added to the hosted deployment. It introduces the deployment's first runtime network request and required widening `connect-src` from `'none'` to `'self'`. Vercel is the hosting platform, so this is a first-party processor, not a third-party analytics vendor. | Live verification via `node scripts/verify-analytics-live.mjs https://<deployment>`: the injected script is `/_vercel/insights/script.js` (same-origin, HTTP 200), the beacon is `POST https://<deployment>/_vercel/insights/view` on the site's own origin, and the request log contained **no** cross-origin requests. Beacon body observed: `{"o":"https://<deployment>/","sv":"0.1.3","sdkn":"@vercel/analytics/react","sdkv":"2.0.1","r":""}` — page URL and SDK identifiers only. The referrer is empty because the deployment also sends `Referrer-Policy: no-referrer`. `context.cookies()` → `[]`; `Object.keys(localStorage)` → `[]`. The served script references only `/_vercel/insights/*` paths and makes no cross-origin request. | **ACCEPTED 2026-11-01** — deliberate and reviewed. `connect-src 'self'` was chosen over a narrower path allowlist so that the policy does not depend on the beacon's exact path, and it still blocks every cross-origin destination. Cookie-free, no persistent identifier, no cross-site profile. The local and packaged runtimes do not serve `/_vercel/insights/script.js`, so nothing is collected there. |
 
 ---
 
@@ -132,6 +146,63 @@ dist-web/sitemap.xml
 No source maps (`.map` files: 0). No dynamic imports (`import(`: 0). No `modulepreload`
 links. No `preinit`/`preload` usage.
 
+### 3.4 The hosted deployment's analytics beacon stays on its own origin
+
+Vercel Web Analytics was added on 2026-11-01 (F-15). The claim that needs testing is
+not "it is Vercel's product" but "the browser never leaves the site's origin, and no
+user-identifying data is stored." Both were tested against a live deployment.
+
+```bash
+node scripts/verify-analytics-live.mjs https://<deployment>
+```
+
+```
+  PASS  insights <script> injected -- /_vercel/insights/script.js
+  PASS  insights script is same-origin -- /_vercel/insights/script.js
+  PASS  insights script fetched successfully -- HTTP 200
+  PASS  beacon POST issued -- https://<deployment>/_vercel/insights/view
+  PASS  no cross-origin requests -- none
+  PASS  catalog renders -- 79 cards
+
+CSP violations: none
+Page errors:    none
+Console errors: none
+```
+
+The beacon body was captured from the same run:
+
+```json
+{"o":"https://<deployment>/","sv":"0.1.3","sdkn":"@vercel/analytics/react","sdkv":"2.0.1","r":""}
+```
+
+Page URL and SDK identifiers only. The empty referrer is a direct consequence of the
+deployment's own `Referrer-Policy: no-referrer`, not of the analytics product.
+`context.cookies()` returned `[]` and `Object.keys(localStorage)` returned `[]`, so
+no cookie and no persistent identifier is set.
+
+Inspecting the served script itself confirms the same thing statically. It contains
+no absolute `http://` or `https://` URL at all, references only the `/_vercel/insights`
+prefix, and issues exactly two requests — `fetch(t, {method:"POST", keepalive:true})`
+for the page view and `fetch(f, {method:"GET", keepalive:true})` for the session
+handshake — both to same-origin paths.
+
+The same script is served to the local and packaged runtimes, where the path does not
+exist and returns `404`, so nothing is collected and no request is made:
+
+```
+GET http://127.0.0.1:4320/_vercel/insights/script.js   ->  404
+```
+
+One behavior is **development-only** and must not be mistaken for a production
+property. Under `npm run dev:web`, `NODE_ENV` is `development`, so the analytics
+library loads its debug script from the third-party origin
+`https://va.vercel-scripts.com/v1/script.debug.js`. The Vite dev server does not
+serve the production CSP headers, so the request is not blocked there. The
+production build resolves to the same-origin `/_vercel/insights/script.js` and does
+not do this. Verified: the dev server request log contains
+`GET https://va.vercel-scripts.com/v1/script.debug.js`, and the production bundle
+resolves the same function to the local path.
+
 ---
 
 ## 4. Residual risks
@@ -146,6 +217,7 @@ These remain true after all remediation. They are accepted for the static deploy
 | **Third-party CDN and DNS are outside this review's scope.** Vercel's own security posture, TLS configuration, and the DNS provider's controls were not assessed. | Out of scope. Referenced here so it is not silently assumed. |
 | **The `npm ci --include=dev` install command widens the build-time install surface.** Dev dependencies are installed during the Vercel build, so a compromised dev dependency could execute at build time. | Mitigated by `.npmrc` `ignore-scripts=true` (blocks install-time lifecycle scripts, the main supply-chain vector) and exact version pinning on every dependency. Accepted as the standard trade-off for a build that needs `vite` and `typescript`. |
 | **Content accuracy errors.** A summary could misstate a requirement. | Mitigated by content markers, editorial review metadata, prominent disclaimers, and linking rather than reproducing source text. Inherent to any reference catalog. |
+| **Aggregate page-view data reaches the hosting platform.** Vercel Web Analytics receives the page URL, referrer, and coarse device, browser, and locale signals of every visitor to the hosted deployment (F-15). | Accepted for the hosted deployment. Vercel is first-party to the host, the collection is aggregate and cookie-free, no persistent identifier is stored, and visitors cannot be linked across days or across sites. No account, form, catalog, or client-assessment content is included. The local and packaged runtimes collect nothing. If the deployment is later self-hosted on a different platform, this control does not transfer and the CSP would need re-review. |
 | **No automated accessibility/responsive regression suite.** The browser acceptance journeys were manual. | Accepted for now; tracked as a quality to-do. The strict CSP and interaction verification scripts partially cover this ground. |
 
 ---
@@ -174,8 +246,11 @@ The deployed product does not call the API, so there is no reason to relax it.
 1. **Publish only `dist-web/`.** Do not deploy the Fastify API, the `dist-server/`
    output, or any `local-data/` directory alongside it.
 2. **Keep the CSP as written.** Do not add `unsafe-inline` or `unsafe-eval` to make a
-   future change work — the strict policy is load-bearing, and `connect-src 'none'` is
-   the control that makes an accidental future network call fail loudly.
+   future change work — the strict policy is load-bearing. `connect-src 'self'` is
+   the control that makes an accidental future network call to a third-party
+   destination fail loudly; it is `'self'` rather than `'none'` only so that the
+   same-origin analytics beacon is permitted (F-15). Do not widen it further, and do
+   not replace it with a wildcard.
 3. **Keep `.vercelignore` intact and correctly named.** Its current absence of effect
    would silently upload the API sources, tests, and local data.
 4. **Re-run `npm run accept` and `scripts/verify-production-csp.mjs` after any change
@@ -188,6 +263,16 @@ The deployed product does not call the API, so there is no reason to relax it.
    framework "Other", build command `npm run build:web`, and output directory
    `dist-web`. After the first deploy, verify the live response carries the expected
    headers rather than assuming the configuration was applied.
+7. **Keep Vercel Web Analytics enabled only for the hosted deployment, and re-verify
+   it after any change to `src/web/main.tsx` or the dependency tree.** If the
+   `<Analytics />` component is removed, `connect-src` may be returned to `'none'`; if
+   it is kept, `connect-src 'self'` must stay. Either way, run
+   `scripts/verify-analytics-live.mjs <deployment>` and confirm the beacon is still
+   same-origin and still carries no user-identifying data (F-15).
+8. **Re-verify the analytics behavior when the deployment moves off Vercel.** The
+   first-party, same-origin, cookie-free properties in F-15 are properties of the
+   Vercel platform, not of the script. A different host would need a fresh review of
+   what the script loads and where it beacons.
 
 ---
 

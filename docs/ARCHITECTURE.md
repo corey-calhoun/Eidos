@@ -102,7 +102,32 @@ adapters (SQLite, clock, IDs, Ollama) ----^
 - Fastify serves the built static UI and `/api/v1` from the same loopback origin.
 - Default bind address is `127.0.0.1`, never `0.0.0.0` or a LAN address.
 - The launcher chooses or configures a port and opens an exact loopback URL.
-- No remote listener, telemetry, or external synchronization is enabled by default.
+- No remote listener, telemetry, or external synchronization is enabled by default. The analytics script path does not exist in this runtime, so the request 404s and nothing is collected.
+
+### Hosted deployment analytics
+
+The published Vercel deployment is the one runtime where analytics is enabled.
+Vercel Web Analytics is a first-party platform feature, not an external
+analytics vendor, and it is the only network traffic the deployed site
+produces.
+
+- The script is served same-origin at `/_vercel/insights/script.js` by the
+  Vercel edge, so `script-src 'self'` permits it without an exception.
+- The page view is posted to `/_vercel/insights/view` on the site's own
+  origin, which is why the published CSP carries `connect-src 'self'`.
+- The payload is the page URL and SDK identifiers. The deployment also sends
+  `Referrer-Policy: no-referrer`, so the referrer field arrives empty.
+- No cookie is set and no persistent identifier is stored in the browser.
+  Visitors are identified by a hash derived from the request that resets daily
+  and cannot be linked across days or across sites.
+- The application's own source remains free of runtime network calls; the
+  catalog is compiled into the bundle.
+
+Development differs from production here: under `npm run dev:web`,
+`NODE_ENV` is `development`, so the library loads its debug script from the
+third-party origin `https://va.vercel-scripts.com/v1/script.debug.js`. The
+Vite dev server does not serve the production CSP headers. The production
+build does not do this.
 
 ### Host and origin controls
 

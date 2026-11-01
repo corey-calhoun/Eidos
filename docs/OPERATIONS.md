@@ -256,9 +256,29 @@ or by uploading `dist-web/` directly to any static host.
 ### Response headers
 
 Configured in `vercel.json`. The CSP is the strictest useful form for this
-bundle: no inline scripts, no inline styles, no external fonts, and no runtime
-network access, so `connect-src 'none'` and `default-src 'none'` are accurate
-rather than aspirational. The browser enforces them.
+bundle: no inline scripts, no inline styles, and no external fonts, so
+`default-src 'none'` is accurate rather than aspirational. The browser
+enforces it.
+
+`connect-src` is `'self'`. It was `'none'` until Vercel Web Analytics was
+added on 2026-11-01: the analytics script is served same-origin at
+`/_vercel/insights/script.js` and posts the page view to
+`/_vercel/insights/view` on the site's own origin, so the beacon needs a
+same-origin allowance. The application's own code still makes no runtime
+network requests — the catalog is compiled into the bundle — and `'self'`
+still blocks every cross-origin destination.
+
+The local and packaged runtimes do not serve `/_vercel/insights/script.js`,
+so the request returns 404, nothing is collected, and no outbound request is
+made. `scripts/serve-production.mjs` serves a stand-in for that path only
+when `EIDOS_STUB_INSIGHTS=1` is set, which lets the CSP check prove the
+script is permitted by `script-src 'self'` rather than merely absent.
+
+One development-only behavior: under `npm run dev:web`, `NODE_ENV` is
+`development`, so the analytics library loads its debug script from the
+third-party origin `https://va.vercel-scripts.com/v1/script.debug.js`. The
+Vite dev server does not serve the production CSP headers, so that request
+is not blocked there. The production build does not do this.
 
 ### The API is not part of the deployment
 

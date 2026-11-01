@@ -25,7 +25,7 @@ Eidos explains the knowledge landscape and offers practical starter guidance. It
 - Side-by-side comparison for selected governance references, with per-item removal from both the selection tray and open comparison.
 - Strict Zod validation that rejects malformed records, duplicate identifiers/slugs, dangling relationships, and unsupported fields.
 - Loopback-only Fastify API with strict query validation and existing defensive Host, Origin, response-header, and body-size controls.
-- No external account, cloud service, telemetry, or AI service is required.
+- No external account, cloud service, telemetry, or AI service is required to run Eidos locally. The hosted Vercel deployment additionally loads Vercel's first-party analytics script; see [Hosted deployment analytics](#hosted-deployment-analytics).
 
 The built-in catalog is a reviewed core, not an exhaustive or automatically current legal library. Every selectable industry has direct coverage; Defense/DoD includes CMMC, DFARS 252.204-7012, and NIST SP 800-171 context, while Government, Healthcare, Financial services, Payment processing, Education, Technology/SaaS, Retail, Small business, and Critical infrastructure retain distinct records. Industry tags and Eidos-curated relationships are orientation aids, not legal-applicability, certification, audit, or compliance determinations. See [`docs/CATALOG_COVERAGE.md`](docs/CATALOG_COVERAGE.md) for inclusion and review rules.
 
@@ -123,8 +123,8 @@ No output means neither Eidos listener remains active.
 ## Production deployment
 
 Eidos ships as a **static site**. The web client in `src/web/` is a self-contained
-SPA: the catalog is compiled into the JavaScript bundle and the client makes no
-network calls at runtime. The Fastify API in `src/server/` is a local
+SPA: the catalog is compiled into the JavaScript bundle and the application code
+makes no network calls at runtime. The Fastify API in `src/server/` is a local
 development and integration surface, and it is **not** part of the published
 deployment.
 
@@ -143,17 +143,54 @@ The deployed site carries these headers:
 
 | Header | Value | Why |
 |---|---|---|
-| `Content-Security-Policy` | `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` | The bundle has no inline scripts, no inline styles, no external fonts, and makes no runtime requests, so every permissive directive can be dropped. |
+| `Content-Security-Policy` | `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` | The bundle has no inline scripts, no inline styles, and no external fonts, so every permissive directive can be dropped. `connect-src 'self'` permits the same-origin analytics beacon; it still blocks every cross-origin destination. |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | HTTPS-only after first contact. |
 | `X-Content-Type-Options` | `nosniff` | Prevents MIME confusion. |
 | `X-Frame-Options` | `DENY` | Prevents framing. |
-| `Referrer-Policy` | `no-referrer` | The app reads no referrer data. |
+| `Referrer-Policy` | `no-referrer` | The app reads no referrer data, and the analytics beacon receives an empty referrer. |
 | `Permissions-Policy` | camera, microphone, geolocation, and friends disabled | The app uses none of these. |
 | `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` | `same-origin` | No cross-origin resources are loaded. |
 
-`connect-src 'none'` is the important one: it is enforced by the browser, so
-even a hypothetical future bug that added a network call would fail loudly
-rather than quietly exfiltrating to a third party.
+`connect-src 'self'` is the important one: it is enforced by the browser, so
+even a hypothetical future bug that added a network call to a third-party
+destination would fail loudly rather than quietly exfiltrating to it. The
+allowance it grants is narrow: same-origin requests only. The application's
+own source still makes zero runtime network calls — the catalog is compiled
+into the bundle — and the only request the hosted deployment issues is
+Vercel's own analytics beacon to the site's own origin.
+
+### Hosted deployment analytics
+
+The hosted deployment loads Vercel Web Analytics. This is a first-party
+Vercel feature, not a third-party analytics vendor, and it is the only network
+traffic the published site produces.
+
+- **Script.** In production the analytics script is served same-origin at
+  `/_vercel/insights/script.js` by the Vercel edge. The published CSP permits
+  it because `script-src 'self'` allows a same-origin script.
+- **Beacon.** The script posts an aggregate page view to the same origin at
+  `/_vercel/insights/view`. That is why the CSP carries `connect-src 'self'`
+  rather than `connect-src 'none'`.
+- **What is collected.** Aggregate page-view data: the page URL, the
+  referrer, and coarse device, browser, and locale signals. The payload
+  carries no account, form, catalog, or client-assessment content. Because
+  the deployment also sends `Referrer-Policy: no-referrer`, the referrer field
+  arrives empty.
+- **What is not collected.** Vercel Web Analytics sets no cookies and stores
+  no persistent identifier in the browser. Visitors are identified by a hash
+  derived from the request that resets daily and cannot be linked across
+  days or across sites, so no cross-site profile is built.
+- **Local runtime.** The packaged and local runtimes do not serve
+  `/_vercel/insights/script.js`, so the request 404s, nothing is collected,
+  and no outbound request is made.
+- **Development only.** Under `npm run dev:web`, `NODE_ENV` is `development`,
+  so the analytics library loads its debug script from the third-party origin
+  `https://va.vercel-scripts.com/v1/script.debug.js` instead. The Vite dev
+  server does not serve the production CSP headers, so that request is not
+  blocked there. The production build does not do this.
+
+Verification commands are in
+[`docs/PRODUCTION_SECURITY_REVIEW.md`](docs/PRODUCTION_SECURITY_REVIEW.md).
 
 ### What the public deployment does not include
 
@@ -199,7 +236,8 @@ user can attempt loopback requests.
 
 The **published static site** carries no server-side attack surface at all: it
 is a set of files served by a CDN, with a strict CSP and no runtime network
-access. It contains only public reference material — publisher-attributed
+access beyond the same-origin Vercel analytics beacon described above. It
+contains only public reference material — publisher-attributed
 metadata, Eidos-authored editorial material, and links to official sources.
 
 Do not proxy, tunnel, or publish the Fastify API, and do not bind it to a LAN
