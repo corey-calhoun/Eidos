@@ -353,7 +353,6 @@ function App() {
           <span className="brand-mark" aria-hidden="true">E</span>
           <span><strong>Eidos</strong><small>Governance knowledge workspace</small></span>
         </a>
-        <div className="header-status"><span className="status-dot" aria-hidden="true" />Local catalog</div>
         <button className="nav-compare" onClick={(event) => openComparison(event.currentTarget)} disabled={comparisonIds.length < 2}>
           Compare <span>{comparisonIds.length}</span>
         </button>

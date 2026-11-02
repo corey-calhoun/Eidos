@@ -76,9 +76,6 @@ const P = {
   accentHover: "#eaa646",
   onAccent: "#1c1305", // dark text on amber fills
 
-  // Semantic
-  success: "#93b56d",
-
   // Type badges — warm earth ramp
   badge: {
     framework: "#d9a441",
@@ -150,9 +147,6 @@ req("accent on accent-soft surface", P.accent, soft, 4.5);
 // --- Active filter chips: accent-soft over surface, accent text ---
 const chipBg = mixTransparent(P.accent, 12, P.canvas);
 req("accent on active chip", P.accent, chipBg, 4.5);
-
-// --- Success dot ---
-req("success on canvas", P.success, P.canvas, 3, "non-text indicator");
 
 // --- The rail legal notice ---
 // It is 9px text on the filter rail, whose background is rgba(19,17,16,.82)
